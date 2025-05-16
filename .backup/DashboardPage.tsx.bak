@@ -1,0 +1,438 @@
+import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import Header from '../components/layout/Header';
+import DateRangePicker from '../components/ui/DateRangePicker';
+import Dropdown from '../components/ui/Dropdown';
+import TransfersTable from '../components/transfers/TransfersTable';
+import TransferDetailDrawer from '../components/transfers/TransferDetailDrawer';
+import EmptyState from '../components/transfers/EmptyState';
+import { Transfer, TransferStatus } from '../types';
+import { useAuth } from '../contexts/AuthContext';
+import { format } from 'date-fns';
+
+// API base URL - adjust for production vs development
+const API_BASE_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://your-production-api-url.com' 
+  : 'http://localhost:5001';
+
+// Status options - mapped from Salesforce Journey_Status__c values
+const statusOptions = [
+  { value: 'all', label: 'All Statuses' },
+  { value: 'Planned', label: 'Planned' },
+  { value: 'Driver Underway', label: 'Driver Underway' },
+  { value: 'Driver Arrived', label: 'Driver Arrived' },
+  { value: 'Journey In Progress', label: 'Journey In Progress' },
+  { value: 'Completed', label: 'Completed' },
+  { value: 'No Show', label: 'No Show' },
+  { value: 'Cancelled With Costs', label: 'Cancelled' },
+];
+
+// Interface for raw Salesforce reservation data
+interface ReservationData {
+  Pickup_Address__c: string;
+  Pickup_Resolved_Region__c: string;
+  Dropoff_Address__c: string;
+  Dropoff_Resolved_Region__c: string;
+  Pickup_Date_Time__c: string;
+  Additional_Comments__c: string | null;
+  Passenger_Count__c: number;
+  Passenger_Name__c: string;
+  Passenger_Telephone_Number__c: string;
+  Journey_Status__c: string;
+  Vehicle_Type__c: string;
+  Add_Ons__c: string | null;
+  Supplier_Net_Price__c: number;
+  attributes: { type: string; url: string };
+}
+
+/**
+ * Dashboard Page Component
+ * Displays transfers/reservations from Salesforce API
+ * 
+ * Applying rule: Always add debug logs & comments in the code for easier debug & readability
+ */
+const DashboardPage: React.FC = () => {
+  // Get authenticated user and token
+  const { user } = useAuth();
+  
+  const [transfers, setTransfers] = useState<Transfer[]>([]);
+  const [filteredTransfers, setFilteredTransfers] = useState<Transfer[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('Planned'); // Default to 'Planned' status
+  // Initialize with no date range selected
+  // Applying rule: Always add debug logs & comments in the code for easier debug & readability
+  const [dateRange, setDateRange] = useState<{ start: Date | null; end: Date | null }>({
+    start: null,
+    end: null,
+  });
+  const [selectedTransfer, setSelectedTransfer] = useState<Transfer | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  // Fetch data from backend API
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!user?.token) {
+        console.error('No authentication token available');
+        setError('Authentication failed. Please log in again.');
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        console.log('Fetching transfers from API...');
+        setIsLoading(true);
+        setError(null);
+        
+        // Build query params for filters if needed
+        const queryParams = new URLSearchParams();
+        if (statusFilter !== 'all') {
+          queryParams.append('status', statusFilter);
+        }
+        if (dateRange.start) {
+          queryParams.append('start_date', dateRange.start.toISOString());
+        }
+        if (dateRange.end) {
+          queryParams.append('end_date', dateRange.end.toISOString());
+        }
+        
+        // Fetch data from our backend API
+        const response = await fetch(`${API_BASE_URL}/transfers?${queryParams}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${user.token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('API response:', data);
+        
+        if (!data.data || !Array.isArray(data.data)) {
+          throw new Error('Invalid data format received from API');
+        }
+        
+        // Transform Salesforce data to our Transfer format
+        const transformedData: Transfer[] = data.data.map((reservation: ReservationData) => {
+          // Generate a unique ID
+          const id = reservation.attributes?.url?.split('/')?.pop() || Math.random().toString(36).substring(2);
+          
+          // Extract pickup time from the full date string
+          const pickupDateTime = new Date(reservation.Pickup_Date_Time__c);
+          let pickupTimeStr = 'N/A';
+          
+          try {
+            // Format pickup time as HH:MM
+            pickupTimeStr = pickupDateTime.toLocaleTimeString('en-US', {
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: true
+            });
+          } catch (error) {
+            console.error('Error formatting pickup time:', error);
+          }
+          
+          // Debug log to confirm field mapping - applying rule: Always add debug logs & comments in the code
+          console.log('Transforming reservation:', {
+            id,
+            date: formatDate(pickupDateTime),
+            time: pickupTimeStr,
+            status: reservation.Journey_Status__c,
+            mappedStatus: mapStatusFromSalesforce(reservation.Journey_Status__c)
+          });
+          
+          // Map fields according to the Transfer interface
+          return {
+            id,
+            bookingReference: id, // Using ID as booking reference
+            status: mapStatusFromSalesforce(reservation.Journey_Status__c),
+            date: formatDate(pickupDateTime),
+            pickupTime: pickupTimeStr,
+            passengerName: reservation.Passenger_Name__c || 'Guest',
+            passengerCount: reservation.Passenger_Count__c || 1,
+            contactPhone: reservation.Passenger_Telephone_Number__c || 'N/A',
+            origin: reservation.Pickup_Resolved_Region__c || reservation.Pickup_Address__c || 'N/A',
+            destination: reservation.Dropoff_Resolved_Region__c || reservation.Dropoff_Address__c || 'N/A',
+            vehicleType: reservation.Vehicle_Type__c || 'Standard',
+            flightNumber: '', // Not provided in Salesforce data
+            notes: reservation.Additional_Comments__c || '',
+            createdAt: new Date().toISOString() // Using current time as createdAt since not provided
+          };
+        });
+        
+        console.log(`Loaded ${transformedData.length} transfers`);
+        setTransfers(transformedData);
+      } catch (err) {
+        console.error('Failed to fetch transfers:', err);
+        setError('Failed to load transfers. Please try again later.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [user?.token, statusFilter, dateRange]);
+  
+  /**
+   * Format date object to string format
+   * Applying rule: Always add debug logs & comments in the code for easier debug & readability
+   */
+  const formatDate = (date: Date): string => {
+    try {
+      if (!date || isNaN(date.getTime())) {
+        console.warn('Invalid date provided to formatDate:', date);
+        return 'Invalid date';
+      }
+      return format(date, 'MMM dd, yyyy');
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Error formatting date';
+    }
+  };
+  
+  /**
+   * Map Salesforce status to our frontend status types
+   */
+  const mapStatusFromSalesforce = (sfStatus: string): TransferStatus => {
+    // Map Salesforce statuses to our frontend TransferStatus type
+    switch (sfStatus) {
+      case 'Planned': return 'pending';
+      case 'Driver Underway': return 'pending';
+      case 'Driver Arrived': return 'pending';
+      case 'Journey In Progress': return 'pending'; // Changed from 'inProgress' to match TransferStatus type
+      case 'Completed': return 'completed';
+      case 'No Show': return 'cancelled';
+      case 'Cancelled With Costs': return 'cancelled';
+      default: return 'pending';
+    }
+  };
+
+  // Filter transfers based on status, date range, and search term
+  // Applying rule: Always add debug logs & comments in the code for easier debug & readability
+  useEffect(() => {
+    // Start with all transfers
+    let result = [...transfers];
+    
+    console.log(`Starting filtering with ${transfers.length} total transfers`);
+    
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      console.log(`Filtering by status: ${statusFilter}`);
+      
+      // When we select a Salesforce status like 'Planned' in the dropdown,
+      // we need to compare it with our mapped frontend status values like 'pending'
+      // Applying rule: Always add debug logs & comments in the code for easier debug & readability
+      
+      // We're displaying raw Salesforce status values in the UI
+      // but our transfers have the mapped frontend status values
+      if (statusFilter === 'Planned') {
+        result = result.filter(transfer => transfer.status === 'pending');
+      } else if (statusFilter === 'Completed') {
+        result = result.filter(transfer => transfer.status === 'completed');
+      } else if (statusFilter === 'Driver Underway' || statusFilter === 'Driver Arrived' || statusFilter === 'Journey In Progress') {
+        result = result.filter(transfer => transfer.status === 'pending');
+      } else if (statusFilter === 'No Show' || statusFilter === 'Cancelled With Costs') {
+        result = result.filter(transfer => transfer.status === 'cancelled');
+      } else {
+        // For any other statuses, attempt direct comparison
+        result = result.filter(transfer => transfer.status === statusFilter);
+      }
+      
+      console.log(`After status filtering: ${result.length} transfers`);
+    }
+
+    // Apply date range filter
+    if (dateRange.start && dateRange.end) {
+      console.log('Applying date range filter:', {
+
+      // Applying rule: Always add debug logs & comments in the code for easier debug & readability
+      result = result.filter(transfer => {
+        try {
+          // Get date parts from the formatted date string (e.g., 'Apr 22, 2025')
+          const dateParts = transfer.date.split(' ');
+          if (dateParts.length !== 3) {
+            console.warn(`Invalid date format in transfer ${transfer.id}: ${transfer.date}`);
+            return false;
+          }
+          
+          // Convert month name to month number (0-11)
+          const months: Record<string, number> = {
+            'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5,
+            'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11
+          };
+          
+          // Parse date parts
+          const month = months[dateParts[0]];
+          const day = parseInt(dateParts[1].replace(',', ''));
+          const year = parseInt(dateParts[2]);
+          
+          // Check if parsing was successful
+          if (isNaN(day) || isNaN(year) || month === undefined) {
+            console.warn(`Failed to parse date for transfer ${transfer.id}: ${transfer.date}`);
+            return false;
+          }
+          
+          // Create a date object at noon to avoid timezone issues
+          const transferDate = new Date(year, month, day, 12, 0, 0);
+          
+          // Check if date is in range
+          const isAfterStart = transferDate >= start;
+          const isBeforeEnd = transferDate <= end;
+          const isInRange = isAfterStart && isBeforeEnd;
+          
+          // Debug first few items
+          if (result.indexOf(transfer) < 3) {
+            console.log(`Transfer ${transfer.id} date comparison:`, {
+              dateString: transfer.date,
+              parsedDate: transferDate.toISOString(),
+              isAfterStart,
+              isBeforeEnd,
+              isInRange
+            });
+          }
+          
+          return isInRange;
+          
+        } catch (error) {
+          console.error(`Error comparing dates for transfer ${transfer.id}:`, error);
+          return false;
+        }
+      });
+      
+      console.log(`After date filtering: ${result.length} transfers remain`);
+    }
+          }
+          
+          return transferDate >= start && transferDate <= end;
+        } catch (error) {
+          console.error(`Error comparing dates for transfer ${transfer.id}:`, error);
+          return false; 
+        }
+      });
+      
+      console.log(`After date filtering: ${result.length} transfers remain`);
+    }
+
+    // Apply search filter
+    if (searchTerm) {
+      const search = searchTerm.toLowerCase();
+      result = result.filter(transfer =>
+        transfer.passengerName.toLowerCase().includes(search) ||
+        transfer.bookingReference.toLowerCase().includes(search) ||
+        transfer.flightNumber.toLowerCase().includes(search) ||
+        transfer.origin.toLowerCase().includes(search) ||
+        transfer.destination.toLowerCase().includes(search)
+      );
+    }
+
+    setFilteredTransfers(result);
+  }, [transfers, statusFilter, dateRange, searchTerm]);
+
+  const handleViewTransfer = (id: string) => {
+    const transfer = transfers.find(t => t.id === id) || null;
+    setSelectedTransfer(transfer);
+    setIsDrawerOpen(true);
+  };
+
+  const handleMarkCompleted = (id: string) => {
+    // Update the status in the transfers array
+    const updatedTransfers = transfers.map(transfer => 
+      transfer.id === id ? { ...transfer, status: 'completed' as TransferStatus } : transfer
+    );
+    setTransfers(updatedTransfers);
+    
+    // Also update the selected transfer if it's open
+    if (selectedTransfer && selectedTransfer.id === id) {
+      setSelectedTransfer({ ...selectedTransfer, status: 'completed' });
+    }
+    
+    // Close the drawer
+    setIsDrawerOpen(false);
+  };
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+  
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 }
+  };
+
+  return (
+    <div className="min-h-screen bg-neutral-50">
+      <Header title="Transfers" />
+      
+      <main className="container mx-auto px-4 py-6">
+        <motion.div
+          className="space-y-6"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          {/* Filters */}
+          <motion.div 
+            className="flex flex-col md:flex-row gap-4 bg-white p-4 rounded-xl shadow-soft border border-neutral-200"
+            variants={itemVariants}
+          >
+            <div className="w-full md:w-1/3">
+              {/* Date range picker with no default dates - applying rule: Always add debug logs & comments */}
+              <DateRangePicker
+                onChange={(range) => {
+                  console.log('Date range changed:', range);
+                  setDateRange(range);
+                }}
+                defaultStartDate={null}
+                defaultEndDate={null}
+              />
+            </div>
+            <div className="w-full md:w-1/3">
+              <Dropdown
+                options={statusOptions}
+                value={statusFilter}
+                onChange={setStatusFilter}
+                label="Status"
+              />
+            </div>
+          </motion.div>
+          
+          {/* Table or Empty State */}
+          <motion.div variants={itemVariants}>
+            {!isLoading && filteredTransfers.length === 0 ? (
+              <EmptyState />
+            ) : (
+              <TransfersTable
+                transfers={filteredTransfers}
+                isLoading={isLoading}
+                onViewTransfer={handleViewTransfer}
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+              />
+            )}
+          </motion.div>
+        </motion.div>
+      </main>
+      
+      {/* Transfer Detail Drawer */}
+      <TransferDetailDrawer
+        transfer={selectedTransfer}
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        onMarkCompleted={handleMarkCompleted}
+      />
+    </div>
+  );
+};
+
+export default DashboardPage;
