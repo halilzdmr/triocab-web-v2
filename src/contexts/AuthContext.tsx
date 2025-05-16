@@ -19,14 +19,14 @@ console.log(`Stytch API URL: ${STYTCH_API_URL}`);
 
 // Stytch configuration - replace these with your actual Stytch project credentials
 // Using Vite's import.meta.env for environment variables
-const STYTCH_PUBLIC_TOKEN = 'public-token-test-ec32afc9-95cd-4218-bc88-3aa38852341c';
+const STYTCH_PUBLIC_TOKEN = 'public-token-live-83ed4115-ed31-4b05-9634-2fdbc83ee813';
 
 // Debug log for token initialization (without showing the actual token)
 console.log(`Stytch token initialized: ${STYTCH_PUBLIC_TOKEN ? '✓' : '✗'}`);
 
 // Your backend API URL for user data and authentication
 const AUTH_API_URL = import.meta.env.PROD 
-  ? 'https://your-production-api-url.com/stytch' 
+  ? 'http://bodrum-lux-portal.s3-website.eu-central-1.amazonaws.com/stytch' 
   : 'http://localhost:5001/stytch';
 
 // Debug log for API URL
