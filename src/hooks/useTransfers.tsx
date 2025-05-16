@@ -10,7 +10,7 @@ import { formatDate, parseFormattedDate, isDateInRange } from '../utils/dateUtil
 
 // API base URL - adjust for production vs development
 const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://your-production-api-url.com' 
+  ? 'http://bodrum-lux-portal.s3-website.eu-central-1.amazonaws.com' 
   : 'http://localhost:5001';
 
 interface UseTransfersProps {
