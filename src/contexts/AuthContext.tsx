@@ -26,7 +26,7 @@ console.log(`Stytch token initialized: ${STYTCH_PUBLIC_TOKEN ? '✓' : '✗'}`);
 
 // Your backend API URL for user data and authentication
 const AUTH_API_URL = import.meta.env.PROD 
-  ? 'http://bodrum-lux-portal.s3-website.eu-central-1.amazonaws.com/stytch' 
+  ? 'http://ec2-63-177-243-221.eu-central-1.compute.amazonaws.com:5001/stytch' 
   : 'http://localhost:5001/stytch';
 
 // Debug log for API URL
