@@ -94,23 +94,77 @@ export function isDateInRange(
   endDate: Date | null | undefined
 ): boolean {
   if (!date) {
+    console.debug('isDateInRange: date is null or undefined');
     return false;
   }
 
   try {
-    // Normalise the comparison boundaries
+    // Clone the date to avoid modifying the original
+    const dateToCheck = new Date(date);
+    
+    // Extract just the date part (year, month, day) to normalize for comparison
+    // This ensures we ignore time zone issues by comparing only the date parts
+    const dateYear = dateToCheck.getFullYear();
+    const dateMonth = dateToCheck.getMonth();
+    const dateDay = dateToCheck.getDate();
+    
+    // Normalize the comparison boundaries
     let inRange = true;
 
     if (startDate) {
+      // Create a normalized start date (midnight)
       const start = new Date(startDate);
-      start.setHours(0, 0, 0, 0); // start of day
-      inRange = inRange && date >= start;
+      start.setHours(0, 0, 0, 0);
+      
+      // For date comparison, check if the day is at or after the start date
+      const startYear = start.getFullYear();
+      const startMonth = start.getMonth();
+      const startDay = start.getDate();
+      
+      // Compare year, month, day hierarchically
+      const isAfterStart = 
+        dateYear > startYear || 
+        (dateYear === startYear && dateMonth > startMonth) ||
+        (dateYear === startYear && dateMonth === startMonth && dateDay >= startDay);
+      
+      inRange = inRange && isAfterStart;
+      
+      console.debug('Date range comparison (start):', {
+        dateToCheck: dateToCheck.toISOString(),
+        dateParts: { year: dateYear, month: dateMonth, day: dateDay },
+        startDate: start.toISOString(),
+        startParts: { year: startYear, month: startMonth, day: startDay },
+        isAfterStart,
+        inRange
+      });
     }
 
     if (endDate) {
+      // Create a normalized end date (end of day)
       const end = new Date(endDate);
-      end.setHours(23, 59, 59, 999); // end of day
-      inRange = inRange && date <= end;
+      end.setHours(23, 59, 59, 999);
+      
+      // For date comparison, check if the day is at or before the end date
+      const endYear = end.getFullYear();
+      const endMonth = end.getMonth();
+      const endDay = end.getDate();
+      
+      // Compare year, month, day hierarchically
+      const isBeforeEnd = 
+        dateYear < endYear || 
+        (dateYear === endYear && dateMonth < endMonth) ||
+        (dateYear === endYear && dateMonth === endMonth && dateDay <= endDay);
+      
+      inRange = inRange && isBeforeEnd;
+      
+      console.debug('Date range comparison (end):', {
+        dateToCheck: dateToCheck.toISOString(),
+        dateParts: { year: dateYear, month: dateMonth, day: dateDay },
+        endDate: end.toISOString(),
+        endParts: { year: endYear, month: endMonth, day: endDay },
+        isBeforeEnd,
+        inRange
+      });
     }
 
     return inRange;
