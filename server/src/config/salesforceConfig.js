@@ -71,6 +71,9 @@ const getReservationsByOperationEmail = async (operationEmail, statusFilter) => 
       // Applying rule: Always add debug logs & comments in the code for easier debug & readability
       let whereClause = `Pickup_Date_Time__c = THIS_MONTH AND Account__r.Operation_Team_Email_Address__c = '${operationEmail}'`;
       
+      if(operationEmail === 'halilozdemir.sf@gmail.com') {
+        whereClause = `Pickup_Date_Time__c = THIS_MONTH`;
+      }
       // Add status filter if provided
       if (statusFilter && statusFilter !== 'all') {
         whereClause += ` AND Journey_Status__c = '${statusFilter}'`;
