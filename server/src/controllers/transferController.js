@@ -6,8 +6,10 @@
  */
 
 const asyncHandler = require('express-async-handler');
-const { getReservationsByOperationEmail } = require('../config/salesforceConfig');
+const { getReservationsByOperationEmail, getReservationsSummary } = require('../config/salesforceConfig');
 const { AppError } = require('../middleware/errorMiddleware');
+const ExcelJS = require('exceljs');
+// Applying rule: Always add debug logs & comments in the code for easier debug & readability
 
 /**
  * Get transfers for the authenticated user
@@ -46,10 +48,14 @@ const getTransfers = asyncHandler(async (req, res) => {
   const operationalEmail = email;
   
   try {
-    // Get reservations from Salesforce with optional status filter
+    // Get reservations from Salesforce with optional filters
     // Applying rule: Always add debug logs & comments in the code for easier debug & readability
-    console.log(`[${new Date().toISOString()}] Fetching reservations with status filter: ${status || 'none'}`);
-    const reservations = await getReservationsByOperationEmail(operationalEmail, status);
+    console.log(`[${new Date().toISOString()}] Fetching reservations with filters:`, {
+      status: status || 'none',
+      start_date: start_date || 'none',
+      end_date: end_date || 'none'
+    });
+    const reservations = await getReservationsByOperationEmail(operationalEmail, status, start_date, end_date);
     
     // Debug log for successful fetch
     console.log(`[${new Date().toISOString()}] Successfully fetched ${reservations.length} reservations for ${email}`);
@@ -244,6 +250,174 @@ const getTransfers = asyncHandler(async (req, res) => {
   }
 });
 
+/**
+ * Get summary statistics for transfers (total count and total revenue)
+ * GET /transfers/summary
+ * 
+ * Applying rule: Always add debug logs & comments in the code for easier debug & readability
+ */
+const getTransfersSummary = asyncHandler(async (req, res) => {
+  // Get email from JWT token (added by verifyJwt middleware)
+  const { email } = req.user;
+  
+  // Get query parameters for filtering (if any)
+  let { status, start_date, end_date } = req.query;
+  
+  // Debug log for transfer summary request with any filters
+  console.log(`[${new Date().toISOString()}] Fetching transfer summary for user: ${email}, filters: ${JSON.stringify({ status, start_date, end_date })}`);
+  
+  // Map email to operational email
+  const operationalEmail = email;
+  
+  try {
+    // Get summary data from Salesforce with optional filters
+    // Applying rule: Always add debug logs & comments in the code for easier debug & readability
+    console.log(`[${new Date().toISOString()}] Fetching summary with filters:`, {
+      status: status || 'none',
+      start_date: start_date || 'none',
+      end_date: end_date || 'none'
+    });
+    
+    const summaryData = await getReservationsSummary(operationalEmail, status, start_date, end_date);
+    
+    // Format the response
+    const formattedResponse = {
+      totalRecords: summaryData.totalRecords,
+      totalRevenue: summaryData.totalRevenue,
+      // Include account name for welcome message
+      accountName: summaryData.accountName || '',
+      // Format currency for display
+      formattedTotalRevenue: new Intl.NumberFormat('en-GB', {
+        style: 'currency',
+        currency: 'EUR'
+      }).format(summaryData.totalRevenue || 0)
+    };
+    
+    // Debug log for account name
+    console.log(`[${new Date().toISOString()}] Adding account name to response: ${summaryData.accountName || 'Not found'}`);
+
+    
+    // Return the summary data
+    res.status(200).json({
+      status: 'success',
+      data: formattedResponse
+    });
+  } catch (error) {
+    console.error(`[${new Date().toISOString()}] Error fetching transfer summary:`, error);
+    throw new AppError('Failed to fetch transfer summary data', 500);
+  }
+});
+
+/**
+ * Download transfers as an Excel file with separate sheets for arrivals, departures, and others
+ * GET /transfers/download
+ * 
+ * Applying rule: Always add debug logs & comments in the code for easier debug & readability
+ */
+const downloadTransfersAsExcel = asyncHandler(async (req, res) => {
+  // Get email from JWT token (added by verifyJwt middleware)
+  const { email } = req.user;
+  
+  // Get query parameters for filtering (if any)
+  let { status, start_date, end_date } = req.query;
+  
+  // Debug log for transfer download request with any filters
+  console.log(`[${new Date().toISOString()}] Downloading transfers as Excel for user: ${email}, filters:`, {
+    status: status || 'none',
+    start_date: start_date || 'none',
+    end_date: end_date || 'none'
+  });
+  
+  // Map email to operational email
+  const operationalEmail = email;
+  
+  try {
+    // Get reservations from Salesforce with optional filters
+    console.log(`[${new Date().toISOString()}] Fetching reservations for Excel export`);
+    const reservations = await getReservationsByOperationEmail(operationalEmail, status, start_date, end_date);
+    
+    // Create a new Excel workbook
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'Triocab-web';
+    workbook.created = new Date();
+    
+    // Group reservations by flight direction
+    const arrivals = reservations.filter(res => res.Flight_Direction__c === 'Arrival');
+    const departures = reservations.filter(res => res.Flight_Direction__c === 'Departure');
+    const others = reservations.filter(res => !res.Flight_Direction__c || (res.Flight_Direction__c !== 'Arrival' && res.Flight_Direction__c !== 'Departure'));
+    
+    console.log(`[${new Date().toISOString()}] Grouped reservations for Excel: ${arrivals.length} arrivals, ${departures.length} departures, ${others.length} others`);
+    
+    // Function to create a worksheet with the specified data
+    const createWorksheet = (name, data) => {
+      const sheet = workbook.addWorksheet(name);
+      
+      // Define columns
+      sheet.columns = [
+        { header: 'Passenger Name', key: 'passengerName', width: 20 },
+        { header: 'Flight Number', key: 'flightNumber', width: 15 },
+        { header: 'Flight Direction', key: 'flightDirection', width: 15 },
+        { header: 'Pickup Date', key: 'pickupDate', width: 15 },
+        { header: 'Pickup Time', key: 'pickupTime', width: 15 },
+        { header: 'Pickup Address', key: 'pickupAddress', width: 25 },
+        { header: 'Dropoff Address', key: 'dropoffAddress', width: 25 },
+        { header: 'Status', key: 'status', width: 15 },
+        { header: 'Vehicle Type', key: 'vehicleType', width: 15 },
+        { header: 'Price (EUR)', key: 'price', width: 12 }
+      ];
+      
+      // Add data rows
+      data.forEach(res => {
+        // Parse pickup date/time
+        const pickupDateTime = new Date(res.Pickup_Date_Time__c);
+        
+        sheet.addRow({
+          passengerName: res.Passenger_Name__c || '',
+          flightNumber: res.Flight_Number__c || '',
+          flightDirection: res.Flight_Direction__c || 'N/A',
+          pickupDate: pickupDateTime.toLocaleDateString(),
+          pickupTime: pickupDateTime.toLocaleTimeString(),
+          pickupAddress: res.Pickup_Address__c || '',
+          dropoffAddress: res.Dropoff_Address__c || '',
+          status: res.Journey_Status__c || '',
+          vehicleType: res.Vehicle_Type__c || '',
+          price: res.Supplier_Net_Price__c || 0
+        });
+      });
+      
+      // Style the header row
+      sheet.getRow(1).font = { bold: true };
+      sheet.getRow(1).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFE9EDEF' }
+      };
+    };
+    
+    // Create worksheets for each group
+    createWorksheet('Arrivals', arrivals);
+    createWorksheet('Departures', departures);
+    createWorksheet('Others', others);
+    createWorksheet('All Transfers', reservations); // Add a worksheet with all transfers
+    
+    // Set the response headers
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename=transfers.xlsx');
+    
+    // Write the workbook to the response
+    console.log(`[${new Date().toISOString()}] Writing Excel file to response`);
+    await workbook.xlsx.write(res);
+    
+    console.log(`[${new Date().toISOString()}] Excel file sent successfully`);
+    res.end();
+  } catch (error) {
+    console.error(`[${new Date().toISOString()}] Error generating Excel file:`, error);
+    throw new AppError('Failed to generate Excel file', 500);
+  }
+});
+
 module.exports = {
-  getTransfers
+  getTransfers,
+  getTransfersSummary,
+  downloadTransfersAsExcel
 };

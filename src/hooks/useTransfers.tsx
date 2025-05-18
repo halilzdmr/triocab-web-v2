@@ -3,7 +3,7 @@
  * 
  * Applying rule: Always add debug logs & comments in the code for easier debug & readability
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Transfer, TransferStatus } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { formatDate, parseFormattedDate, isDateInRange } from '../utils/dateUtils';
@@ -22,15 +22,33 @@ interface DateRange {
   end: Date | null;
 }
 
+// Interface for summary data
+interface TransferSummary {
+  totalRecords: number;
+  totalRevenue: number;
+  formattedTotalRevenue: string;
+  accountName?: string; // Account name for welcome message
+}
+
 export function useTransfers({ defaultStatus = 'Planned' }: UseTransfersProps = {}) {
   // Access auth context for token
   const { user } = useAuth();
+  
+  // Ref to track initial load and prevent multiple API calls
+  // Applying rule: Always add debug logs & comments in the code for easier debug & readability
+  const initialLoadComplete = useRef(false);
+  const requestInProgress = useRef(false);
   
   // State management for transfers
   const [allTransfers, setAllTransfers] = useState<Transfer[]>([]);
   const [filteredTransfers, setFilteredTransfers] = useState<Transfer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Summary data state
+  // Applying rule: Always add debug logs & comments in the code for easier debug & readability
+  const [summaryData, setSummaryData] = useState<TransferSummary | null>(null);
+  const [isSummaryLoading, setIsSummaryLoading] = useState(true);
   
   // Filter state
   const [searchTerm, setSearchTerm] = useState('');
@@ -75,14 +93,105 @@ export function useTransfers({ defaultStatus = 'Planned' }: UseTransfersProps = 
     }
   };
 
+  // Fetch summary data from API
+  // Applying rule: Always add debug logs & comments in the code for easier debug & readability
+  const fetchSummaryData = useCallback(async () => {
+    if (!user?.token) {
+      console.error('No authentication token available for summary');
+      return;
+    }
+    
+    try {
+      setIsSummaryLoading(true);
+      
+      // Build query params for filters
+      const queryParams = new URLSearchParams();
+      if (statusFilter !== 'all') {
+        queryParams.append('status', statusFilter);
+      }
+      
+      // Server-side date filtering
+      if (dateRange.start && dateRange.end) {
+        queryParams.append('start_date', dateRange.start.toISOString());
+        queryParams.append('end_date', dateRange.end.toISOString());
+      }
+      
+      console.log('Fetching summary data with params:', queryParams.toString());
+      
+      // Fetch summary data from our backend API
+      const response = await fetch(`${API_BASE_URL}/transfers/summary?${queryParams}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${user.token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch summary: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      console.log('Summary data received:', result);
+      
+      if (result.status === 'success' && result.data) {
+        // Debug raw data received from API
+        console.log('Raw API response data:', result.data);
+        console.log('Account name in response:', result.data.accountName);
+        
+        const formattedTotalRevenue = new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: 'EUR',
+          minimumFractionDigits: 2
+        }).format(result.data.totalRevenue || 0);
+
+        // Create summary data object with detailed logging
+        const newSummaryData = {
+          totalRecords: result.data.totalRecords || 0,
+          totalRevenue: result.data.totalRevenue || 0,
+          formattedTotalRevenue,
+          accountName: result.data.accountName || ''
+        };
+        
+        console.log('Setting summary data with account name:', newSummaryData.accountName);
+        setSummaryData(newSummaryData);
+
+        console.log('Summary data fetched successfully', {
+          totalRecords: result.data.totalRecords,
+          totalRevenue: result.data.totalRevenue,
+          formattedTotalRevenue,
+          accountName: result.data.accountName
+        });
+      } else {
+        console.error('Invalid summary data format', result);
+        setSummaryData(null);
+      }
+    } catch (err) {
+      console.error('Error fetching summary data:', err);
+      setSummaryData(null);
+    } finally {
+      setIsSummaryLoading(false);
+    }
+  }, [user, statusFilter, dateRange.start, dateRange.end]);
+  
   // Fetch transfers from API
   const fetchTransfers = useCallback(async () => {
+    // Prevent concurrent requests
+    // Applying rule: Always add debug logs & comments in the code for easier debug & readability
+    if (requestInProgress.current) {
+      console.log('Request already in progress, skipping duplicate fetch');
+      return;
+    }
+    
     if (!user?.token) {
       console.error('No authentication token available');
       setError('Authentication failed. Please log in again.');
       setIsLoading(false);
       return;
     }
+    
+    // Set request in progress flag
+    requestInProgress.current = true;
 
     try {
       // Applying rule: Always add debug logs & comments in the code for easier debug & readability
@@ -166,6 +275,9 @@ export function useTransfers({ defaultStatus = 'Planned' }: UseTransfersProps = 
       console.error('Error fetching transfers:', err);
       setError('Failed to fetch transfers. Please try again later.');
       setIsLoading(false);
+    } finally {
+      // Clear the request in progress flag
+      requestInProgress.current = false;
     }
   }, [user, statusFilter, dateRange]);
 
@@ -249,8 +361,33 @@ export function useTransfers({ defaultStatus = 'Planned' }: UseTransfersProps = 
     // Don't make the API call if we don't have user authentication yet
     if (!user?.token) return;
     
-    // Only make a single API call on initial load with default filters applied
-    console.log('Initial load - making single API call with default filters:', {
+    // Only fetch on first load to prevent multiple identical API calls
+    if (!initialLoadComplete.current) {
+      console.log('First load detected - making initial API calls with default filters:', {
+        status: statusFilter,
+        dateRange: {
+          start: dateRange.start?.toISOString(),
+          end: dateRange.end?.toISOString()
+        }
+      });
+      
+      initialLoadComplete.current = true;
+      fetchTransfers();
+      fetchSummaryData(); // Also fetch summary data on initial load
+    } else {
+      console.log('Skipping duplicate API calls - initial load already completed');
+    }
+    // We only include user in the dependency array to prevent excessive re-renders
+    // fetchTransfers is removed to prevent the circular dependency issue
+  }, [user]);
+  
+  // Handle filter changes separately
+  useEffect(() => {
+    // Skip initial render - let the first useEffect handle it
+    if (!initialLoadComplete.current) return;
+    
+    // For subsequent filter changes, fetch again
+    console.log('Filter changed - fetching with new filters:', {
       status: statusFilter,
       dateRange: {
         start: dateRange.start?.toISOString(),
@@ -259,11 +396,8 @@ export function useTransfers({ defaultStatus = 'Planned' }: UseTransfersProps = 
     });
     
     fetchTransfers();
-    // We only include user and fetchTransfers in dependency array 
-    // Since fetchTransfers has statusFilter and dateRange in its deps,
-    // this ensures we only make an API call when user auth changes
-    // or when user explicitly changes filters through the UI
-  }, [user, fetchTransfers]);
+    fetchSummaryData(); // Also update summary data when filters change
+  }, [statusFilter, dateRange.start, dateRange.end, fetchTransfers, fetchSummaryData]);
   
   // Apply filters when any filter or data changes
   useEffect(() => {
@@ -298,6 +432,10 @@ export function useTransfers({ defaultStatus = 'Planned' }: UseTransfersProps = 
     transfers: filteredTransfers,
     isLoading,
     error,
+    
+    // Summary data
+    summaryData,
+    isSummaryLoading,
     
     // Filters
     searchTerm,

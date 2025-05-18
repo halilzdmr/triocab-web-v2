@@ -71,7 +71,30 @@ const loginWithEmail = asyncHandler(async (req, res) => {
     throw new AppError('Email not authorized to access this system', 403);
   }
   
+  // Log whether we're in OTP bypass mode or not
+  const isLocalDevelopment = process.env.NODE_ENV === 'development';
+  console.log(`[${new Date().toISOString()}] Environment: ${process.env.NODE_ENV}, OTP Bypass Mode: ${isLocalDevelopment ? 'ENABLED' : 'DISABLED'}`);
+  if (isLocalDevelopment) {
+    console.log(`[${new Date().toISOString()}] LOCAL DEV MODE: OTP verification will be bypassed during verification step`);
+  }
+  
   try {
+    // Check if we're in development mode to bypass Stytch API
+    if (isLocalDevelopment) {
+      console.log(`[${new Date().toISOString()}] LOCAL DEV MODE: Bypassing Stytch API call for email: ${email}`);
+      console.log(`[${new Date().toISOString()}] LOCAL DEV MODE: In development environment, OTP code will be bypassed during verification.`);
+      
+      // Return success without actually calling Stytch API
+      res.status(200).json({
+        status: 'success',
+        message: 'LOCAL DEV MODE: Mock OTP sent successfully',
+        email, // echo back so frontend has context if needed
+        dev_mode: true // flag to indicate we're in dev mode
+      });
+      return; // Exit early
+    }
+    
+    // Only executed in non-development environments:
     // Discovery flow: use otps.email.discovery.send endpoint to send OTP
     console.log(`[${new Date().toISOString()}] Calling Stytch Discovery API for email: ${email}`);
     
@@ -132,39 +155,62 @@ const verifyOtp = asyncHandler(async (req, res) => {
     throw new AppError('Please provide an email for verification', 400);
   }
   
+  // Check if running in development environment - if so, bypass OTP verification
+  // This allows for easier local testing
+  const isLocalDevelopment = process.env.NODE_ENV === 'development';
+  console.log(`[${new Date().toISOString()}] Environment: ${process.env.NODE_ENV}, OTP Bypass: ${isLocalDevelopment ? 'ENABLED' : 'DISABLED'}`);
+  
   try {
-    // Add debug log before making the API call
-    console.log(`[${new Date().toISOString()}] Verifying OTP with Stytch Discovery API - email: ${email}, code: ${code ? '******' : 'missing'}`);
+    // Create response variable outside the if-else scope
+    let response;
+    let member_id;
+    let org_id;
     
-    // Prepare the verification parameters
-    const verifyParams = {
-      email_address: String(email).toLowerCase(), // Ensure it's a string
-      code: String(code) // Ensure it's a string
-    };
-    
-    // Debug log the exact parameters being sent to Stytch
-    console.log(`[${new Date().toISOString()}] Stytch Discovery verify parameters:`, JSON.stringify(verifyParams, null, 2));
-    
-    // Make the API call with our prepared parameters
-    // Use Discovery OTP verification endpoint: otps.email.discovery.authenticate
-    const response = await stytchClient.otps.email.discovery.authenticate(verifyParams);
-    
-    // Debug log the entire response for troubleshooting
-    console.log(`[${new Date().toISOString()}] Stytch Discovery OTP verification response:`, JSON.stringify(response, null, 2));
-    
-    console.log(`[${new Date().toISOString()}] OTP verified successfully for: ${email}`);
-    
-    // Get the member ID and organization ID from the response, with safe fallbacks
-    // Discovery responses are structured differently than B2B
-    const member_id = response?.member_id || 
-                      response?.member?.member_id || 
-                      response?.data?.member_id || 
-                      'unknown_member_id';
-                      
-    const org_id = response?.organization_id || 
-                  response?.organization?.organization_id || 
-                  response?.data?.organization_id || 
-                  'unknown_org_id';
+    // Bypass OTP verification if in local development
+    if (isLocalDevelopment) {
+      // Log that we're bypassing real OTP verification
+      console.log(`[${new Date().toISOString()}] LOCAL DEV MODE: Bypassing Stytch OTP verification for ${email}`);
+      
+      // Create a mock successful response with a dummy member_id and org_id
+      member_id = 'local_dev_member_id';
+      org_id = 'local_dev_org_id';
+      
+      // Log the mock verification
+      console.log(`[${new Date().toISOString()}] LOCAL DEV MODE: Simulated successful OTP verification for: ${email}`);
+    } else {
+      // Normal flow - verify with Stytch API in non-development environments
+      console.log(`[${new Date().toISOString()}] Verifying OTP with Stytch Discovery API - email: ${email}, code: ${code ? '******' : 'missing'}`);
+      
+      // Prepare the verification parameters
+      const verifyParams = {
+        email_address: String(email).toLowerCase(), // Ensure it's a string
+        code: String(code) // Ensure it's a string
+      };
+      
+      // Debug log the exact parameters being sent to Stytch
+      console.log(`[${new Date().toISOString()}] Stytch Discovery verify parameters:`, JSON.stringify(verifyParams, null, 2));
+      
+      // Make the API call with our prepared parameters
+      // Use Discovery OTP verification endpoint: otps.email.discovery.authenticate
+      response = await stytchClient.otps.email.discovery.authenticate(verifyParams);
+      
+      // Debug log the entire response for troubleshooting
+      console.log(`[${new Date().toISOString()}] Stytch Discovery OTP verification response:`, JSON.stringify(response, null, 2));
+      
+      console.log(`[${new Date().toISOString()}] OTP verified successfully for: ${email}`);
+      
+      // Get the member ID and organization ID from the response, with safe fallbacks
+      // Discovery responses are structured differently than B2B
+      member_id = response?.member_id || 
+                   response?.member?.member_id || 
+                   response?.data?.member_id || 
+                   'unknown_member_id';
+                        
+      org_id = response?.organization_id || 
+                response?.organization?.organization_id || 
+                response?.data?.organization_id || 
+                'unknown_org_id';
+    }
     
     // Generate our own JWT token with user info for our backend
     const token = jwt.sign(
