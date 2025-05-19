@@ -281,7 +281,7 @@ const getReservationsSummary = async (operationEmail, statusFilter, startDate, e
       console.log(`[${new Date().toISOString()}] Adding start date filter for summary: ${formattedDate}`);
       
       // Use proper datetime literal format for SOQL
-      const dateCondition = `Pickup_Date_Time__c >= ${formattedDate}T00:00:00Z`;
+      const dateCondition = `Pickup_Date_Time__c >= ${formattedDate}T00:00:00+03:00`;
       whereClause = whereClause ? `${whereClause} AND ${dateCondition}` : dateCondition;
     } else {
       // Default to THIS_MONTH if no date filter provided
@@ -301,7 +301,7 @@ const getReservationsSummary = async (operationEmail, statusFilter, startDate, e
       console.log(`[${new Date().toISOString()}] Adding end date filter for summary: ${formattedDate}`);
       
       // Use proper datetime literal format for SOQL
-      const dateCondition = `Pickup_Date_Time__c <= ${formattedDate}T23:59:59Z`;
+      const dateCondition = `Pickup_Date_Time__c <= ${formattedDate}T23:59:59+03:00`;
       whereClause = whereClause ? `${whereClause} AND ${dateCondition}` : dateCondition;
     }
     
