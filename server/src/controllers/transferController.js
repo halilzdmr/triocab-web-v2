@@ -70,7 +70,7 @@ const getTransfers = asyncHandler(async (req, res) => {
         res.Journey_Status__c === status
       );
     }
-    
+    /*
     // Filter by date range if provided
     if (start_date) {
       try {
@@ -234,7 +234,7 @@ const getTransfers = asyncHandler(async (req, res) => {
       } catch (dateError) {
         console.error(`[${new Date().toISOString()}] Error parsing end date:`, dateError);
       }
-    }
+    }*/
     
     console.log(`[${new Date().toISOString()}] After filtering: ${filteredReservations.length} reservations`);
     
