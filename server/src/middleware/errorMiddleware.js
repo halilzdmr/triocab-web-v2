@@ -3,6 +3,8 @@
  * Provides consistent error responses across the application
  */
 
+const { notifyUserEvent } = require('../config/slackConfig');
+
 // Custom error class for application errors
 class AppError extends Error {
   constructor(message, statusCode) {
@@ -19,6 +21,13 @@ class AppError extends Error {
 const errorHandler = (err, req, res, next) => {
   // Log error for debugging
   console.error(`[${new Date().toISOString()}] ERROR:`, err);
+  
+  // Get user info if available
+  const userData = req.user ? { email: req.user.email } : {};
+  
+  // Add request information
+  userData.url = req.originalUrl;
+  userData.method = req.method;
   
   // Default values
   let statusCode = err.statusCode || 500;
@@ -39,6 +48,17 @@ const errorHandler = (err, req, res, next) => {
   if (err.name === 'ValidationError') {
     statusCode = 400;
     message = err.message;
+    
+    // Send validation error notification to Slack
+    notifyUserEvent('validation_error', userData, err)
+      .catch(slackErr => console.error(`[Slack Notification Error] ${slackErr.message}`));
+  }
+  
+  // Send error notification to Slack for server errors (500+) or specific error types
+  if (statusCode >= 500 || err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
+    // Send notification asynchronously (don't await)
+    notifyUserEvent(`server_error_${statusCode}`, userData, err)
+      .catch(slackErr => console.error(`[Slack Notification Error] ${slackErr.message}`));
   }
   
   // Return error response

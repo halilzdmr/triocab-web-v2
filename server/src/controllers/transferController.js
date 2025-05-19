@@ -395,10 +395,51 @@ const downloadTransfersAsExcel = asyncHandler(async (req, res) => {
     };
     
     // Create worksheets for each group
+    createWorksheet('All Transfers', reservations); // Add a worksheet with all transfers
     createWorksheet('Arrivals', arrivals);
     createWorksheet('Departures', departures);
-    createWorksheet('Others', others);
-    createWorksheet('All Transfers', reservations); // Add a worksheet with all transfers
+    createWorksheet('Address to Address', others);
+    
+    // Create Greeting Team sheet with specific fields for greeting team use
+    // Applying rule: Always add debug logs & comments in the code for easier debug & readability
+    console.log(`[${new Date().toISOString()}] Creating Greeting Team worksheet`);
+    const createGreetingTeamWorksheet = () => {
+      const sheet = workbook.addWorksheet('Greeting Team');
+      
+      // Define columns for greeting team
+      sheet.columns = [
+        { header: 'Passenger Phone Number', key: 'passengerPhone', width: 20 },
+        { header: 'Pickup Date', key: 'pickupDate', width: 15 },
+        { header: 'Pickup Time', key: 'pickupTime', width: 15 },
+        { header: 'Flight Number', key: 'flightNumber', width: 15 },
+        { header: 'Passenger Name', key: 'passengerName', width: 20 }
+      ];
+      
+      // Add data rows with specific fields needed by greeting team
+      reservations.forEach(res => {
+        // Parse pickup date/time
+        const pickupDateTime = new Date(res.Pickup_Date_Time__c);
+        
+        sheet.addRow({
+          passengerPhone: res.Passenger_Telephone_Number__c || '',
+          pickupDate: pickupDateTime.toLocaleDateString(),
+          pickupTime: pickupDateTime.toLocaleTimeString(),
+          flightNumber: res.Flight_Number__c || '',
+          passengerName: res.Passenger_Name__c || ''
+        });
+      });
+      
+      // Style the header row
+      sheet.getRow(1).font = { bold: true };
+      sheet.getRow(1).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFE9EDEF' }
+      };
+    };
+    
+    // Call the function to create the Greeting Team worksheet
+    createGreetingTeamWorksheet();
     
     // Set the response headers
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');

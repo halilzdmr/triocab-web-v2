@@ -12,6 +12,7 @@
     "@aws-sdk/client-dynamodb": "^3.445.0",
     "@aws-sdk/client-ses": "^3.445.0",
     "@aws-sdk/lib-dynamodb": "^3.445.0",
+    "axios": "^1.9.0",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "exceljs": "^4.4.0",

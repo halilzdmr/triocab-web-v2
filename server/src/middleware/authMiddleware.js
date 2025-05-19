@@ -6,6 +6,7 @@
 const jwt = require('jsonwebtoken');
 const { AppError } = require('./errorMiddleware');
 const asyncHandler = require('express-async-handler');
+const { notifyUserEvent } = require('../config/slackConfig');
 
 /**
  * Middleware to verify JWT token
@@ -26,6 +27,11 @@ const verifyJwt = asyncHandler(async (req, res, next) => {
   // If no token found, return 401 Unauthorized
   if (!token) {
     console.log(`[${new Date().toISOString()}] No token provided for protected route`);
+    
+    // Send Slack notification for missing token
+    notifyUserEvent('user_auth_missing_token', { url: req.originalUrl })
+      .catch(err => console.error(`[Slack Notification Error] ${err.message}`));
+      
     throw new AppError('Not authorized. No token provided.', 401);
   }
   
@@ -41,9 +47,18 @@ const verifyJwt = asyncHandler(async (req, res, next) => {
     // Debug log for successful verification
     console.log(`[${new Date().toISOString()}] JWT verified successfully for ${decoded.email}`);
     
+    // Send Slack notification for successful authentication
+    notifyUserEvent('user_auth_success', { email: decoded.email, url: req.originalUrl })
+      .catch(err => console.error(`[Slack Notification Error] ${err.message}`));
+    
     next();
   } catch (error) {
     console.log(`[${new Date().toISOString()}] JWT verification failed: ${error.message}`);
+    
+    // Send Slack notification for auth failure
+    notifyUserEvent('user_auth_failure', { url: req.originalUrl }, error)
+      .catch(err => console.error(`[Slack Notification Error] ${err.message}`));
+      
     throw new AppError('Not authorized. Invalid token.', 401);
   }
 });
