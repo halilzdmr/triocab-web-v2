@@ -94,7 +94,7 @@ const getReservationsByOperationEmail = async (operationEmail, statusFilter, sta
         // Use proper datetime literal format for SOQL
         // Format: YYYY-MM-DDThh:mm:ssZ without quotes as specified in Salesforce docs
         // Applying rule: Always add debug logs & comments in the code for easier debug & readability
-        const dateCondition = `Pickup_Date_Time__c >= ${year}-${month}-${day}T00:00:00Z`;
+        const dateCondition = `Pickup_Date_Time__c >= ${year}-${month}-${day}T00:00:00+03:00`;
         whereClause = whereClause ? `${whereClause} AND ${dateCondition}` : dateCondition;
       } else {
         // Default to THIS_MONTH if no date filter provided
@@ -117,7 +117,7 @@ const getReservationsByOperationEmail = async (operationEmail, statusFilter, sta
         // Format: YYYY-MM-DDThh:mm:ssZ without quotes as specified in Salesforce docs
         // For end date, we use 23:59:59 to include the whole day
         // Applying rule: Always add debug logs & comments in the code for easier debug & readability
-        const dateCondition = `Pickup_Date_Time__c <= ${year}-${month}-${day}T23:59:59Z`;
+        const dateCondition = `Pickup_Date_Time__c <= ${year}-${month}-${day}T23:59:59+03:00`;
         whereClause = whereClause ? `${whereClause} AND ${dateCondition}` : dateCondition;
       }
       
