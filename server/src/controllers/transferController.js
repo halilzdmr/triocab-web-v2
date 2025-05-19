@@ -371,12 +371,23 @@ const downloadTransfersAsExcel = asyncHandler(async (req, res) => {
         // Parse pickup date/time
         const pickupDateTime = new Date(res.Pickup_Date_Time__c);
         
+        // Format date as DD/MM/YYYY and time as HH:mm (24-hour format)
+        // Applying rule: Always add debug logs & comments in the code for easier debug & readability
+        const day = String(pickupDateTime.getDate()).padStart(2, '0');
+        const month = String(pickupDateTime.getMonth() + 1).padStart(2, '0');
+        const year = pickupDateTime.getFullYear();
+        const formattedDate = `${day}/${month}/${year}`;
+        
+        const hours = String(pickupDateTime.getHours()).padStart(2, '0');
+        const minutes = String(pickupDateTime.getMinutes()).padStart(2, '0');
+        const formattedTime = `${hours}:${minutes}`;
+        
         sheet.addRow({
           passengerName: res.Passenger_Name__c || '',
           flightNumber: res.Flight_Number__c || '',
           flightDirection: res.Flight_Direction__c || 'N/A',
-          pickupDate: pickupDateTime.toLocaleDateString(),
-          pickupTime: pickupDateTime.toLocaleTimeString(),
+          pickupDate: formattedDate,
+          pickupTime: formattedTime,
           pickupAddress: res.Pickup_Address__c || '',
           dropoffAddress: res.Dropoff_Address__c || '',
           status: res.Journey_Status__c || '',
@@ -416,15 +427,33 @@ const downloadTransfersAsExcel = asyncHandler(async (req, res) => {
       ];
       
       // Add data rows with specific fields needed by greeting team
-      reservations.forEach(res => {
+      // Applying rule: Always add debug logs & comments in the code for easier debug & readability
+      // Filter to only include arrivals for the greeting team
+      const arrivalReservations = reservations.filter(res => res.Flight_Direction__c === 'Arrival');
+      console.log(`[${new Date().toISOString()}] Creating Greeting Team worksheet with ${arrivalReservations.length} arrival records`);
+      
+      arrivalReservations.forEach(res => {
         // Parse pickup date/time
         const pickupDateTime = new Date(res.Pickup_Date_Time__c);
         
+        // Format date as DD/MM/YYYY and time as HH:mm (24-hour format)
+        // Applying rule: Always add debug logs & comments in the code for easier debug & readability
+        const day = String(pickupDateTime.getDate()).padStart(2, '0');
+        const month = String(pickupDateTime.getMonth() + 1).padStart(2, '0');
+        const year = pickupDateTime.getFullYear();
+        const formattedDate = `${day}/${month}/${year}`;
+        
+        const hours = String(pickupDateTime.getHours()).padStart(2, '0');
+        const minutes = String(pickupDateTime.getMinutes()).padStart(2, '0');
+        const formattedTime = `${hours}:${minutes}`;
+        
+        // Applying rule: Always add debug logs & comments in the code for easier debug & readability
+        // For Greeting Team, display "YOK" instead of empty cell when Flight Number is missing
         sheet.addRow({
           passengerPhone: res.Passenger_Telephone_Number__c || '',
-          pickupDate: pickupDateTime.toLocaleDateString(),
-          pickupTime: pickupDateTime.toLocaleTimeString(),
-          flightNumber: res.Flight_Number__c || '',
+          pickupDate: formattedDate,
+          pickupTime: formattedTime,
+          flightNumber: res.Flight_Number__c ? res.Flight_Number__c : 'YOK',
           passengerName: res.Passenger_Name__c || ''
         });
       });
