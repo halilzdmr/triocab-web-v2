@@ -113,7 +113,7 @@ const DashboardPage: React.FC = () => {
                 
                 // API base URL - adjust for production vs development
                 const API_BASE_URL = process.env.NODE_ENV === 'production' 
-                  ? 'http://ec2-18-185-179-234.eu-central-1.compute.amazonaws.com:5001' 
+                  ? 'https://ec2-18-185-179-234.eu-central-1.compute.amazonaws.com:5001' 
                   : 'http://localhost:5001';
                 
                 // Construct the download URL with query parameters
