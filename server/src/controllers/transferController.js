@@ -354,7 +354,9 @@ const downloadTransfersAsExcel = asyncHandler(async (req, res) => {
       
       // Define columns
       sheet.columns = [
+        { header: 'ID', key: 'reservationId', width: 20 },
         { header: 'Passenger Name', key: 'passengerName', width: 20 },
+        { header: 'Passenger Phone Number', key: 'passengerPhone', width: 20 },
         { header: 'Flight Number', key: 'flightNumber', width: 15 },
         { header: 'Flight Direction', key: 'flightDirection', width: 15 },
         { header: 'Pickup Date', key: 'pickupDate', width: 15 },
@@ -383,7 +385,9 @@ const downloadTransfersAsExcel = asyncHandler(async (req, res) => {
         const formattedTime = `${hours}:${minutes}`;
         
         sheet.addRow({
+          reservationId: res.Name || '',
           passengerName: res.Passenger_Name__c || '',
+          passengerPhone: res.Passenger_Telephone_Number__c || '',
           flightNumber: res.Flight_Number__c || '',
           flightDirection: res.Flight_Direction__c || 'N/A',
           pickupDate: formattedDate,

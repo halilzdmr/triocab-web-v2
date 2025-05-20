@@ -65,6 +65,9 @@ const TransfersTable: React.FC<TransfersTableProps> = ({
           <thead className="bg-neutral-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                ID
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
                 Pickup Date/Time
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
@@ -107,6 +110,9 @@ const TransfersTable: React.FC<TransfersTableProps> = ({
                   transition={{ delay: index * 0.05 }}
                   onClick={() => onViewTransfer(transfer.id)}
                 >
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-800">
+                    {transfer.reservationId}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm">
                       <div className="font-medium text-neutral-900">{transfer.date}</div>
@@ -116,11 +122,15 @@ const TransfersTable: React.FC<TransfersTableProps> = ({
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-800">
                     {transfer.passengerName}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-800">
-                    {transfer.origin}
+                  <td className="px-6 py-4 text-sm text-neutral-800">
+                    <div className="max-w-[250px] break-words">
+                      {transfer.origin}
+                    </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-800">
-                    {transfer.destination}
+                  <td className="px-6 py-4 text-sm text-neutral-800">
+                    <div className="max-w-[250px] break-words">
+                      {transfer.destination}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-800">
                     <div className="flex items-center">

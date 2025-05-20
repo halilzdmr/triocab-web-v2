@@ -9,9 +9,11 @@ import { useAuth } from '../contexts/AuthContext';
 import { formatDate, parseFormattedDate, isDateInRange } from '../utils/dateUtils';
 
 // API base URL - adjust for production vs development
+// Using IP address instead of localhost to allow mobile devices on the same network to connect
+// Applying rule: Always add debug logs & comments in the code for easier debug & readability
 const API_BASE_URL = process.env.NODE_ENV === 'production' 
   ? 'https://api.bodrumluxurytravel.com' 
-  : 'http://localhost:5001';
+  : 'http://192.168.90.184:5001';  // Using the same IP address that Vite shows in the Network URL
 
 interface UseTransfersProps {
   defaultStatus?: string;
@@ -175,20 +177,21 @@ export function useTransfers({ defaultStatus = 'Planned' }: UseTransfersProps = 
   }, [user, statusFilter, dateRange.start, dateRange.end]);
   
   // Fetch transfers from API
+  // Applying rule: Always add debug logs & comments in the code for easier debug & readability
   const fetchTransfers = useCallback(async () => {
-    // Prevent concurrent requests
-    // Applying rule: Always add debug logs & comments in the code for easier debug & readability
+    // Don't make duplicate API calls if one is already in progress
     if (requestInProgress.current) {
-      console.log('Request already in progress, skipping duplicate fetch');
+      console.log('Skipping duplicate API call - request already in progress');
       return;
     }
     
     if (!user?.token) {
       console.error('No authentication token available');
-      setError('Authentication failed. Please log in again.');
-      setIsLoading(false);
       return;
     }
+    
+    // Applying rule: Always add debug logs & comments in the code for easier debug & readability
+    console.debug('Will store Salesforce IDs for transfer records to use when generating share links');
     
     // Set request in progress flag
     requestInProgress.current = true;
@@ -246,8 +249,28 @@ export function useTransfers({ defaultStatus = 'Planned' }: UseTransfersProps = 
         } catch (error) {
           console.error('Error formatting pickup time:', error);
         }
+        // Parse geolocation data if available
+        // Applying rule: Always add debug logs & comments in the code for easier debug & readability
+        const pickupLocation = reservation.Pickup_Location__c ? {
+          latitude: reservation.Pickup_Location__c.latitude,
+          longitude: reservation.Pickup_Location__c.longitude
+        } : undefined;
+        
+        const dropoffLocation = reservation.Dropoff_Location__c ? {
+          latitude: reservation.Dropoff_Location__c.latitude,
+          longitude: reservation.Dropoff_Location__c.longitude
+        } : undefined;
+        
+        console.debug('Geolocation data:', { pickupLocation, dropoffLocation });
+        
+        // Store the Salesforce ID along with our frontend ID
+        // Applying rule: Always add debug logs & comments in the code for easier debug & readability
+        console.debug('Storing Salesforce ID with transfer:', { frontendId: id, salesforceId: reservation.Id });
+        
         return {
           id,
+          reservationId: reservation.Name,
+          salesforceId: reservation.Id, // Store the actual Salesforce record ID
           bookingReference: id,
           passengerName: reservation.Passenger_Name__c || 'Guest',
           passengerCount: reservation.Passenger_Count__c || 1,
@@ -264,6 +287,8 @@ export function useTransfers({ defaultStatus = 'Planned' }: UseTransfersProps = 
           notes: reservation.Additional_Comments__c || '',
           createdAt: new Date().toISOString(),
           price: reservation.Supplier_Net_Price__c || 'N/A',
+          pickupLocation,
+          dropoffLocation
         };
       });
       console.log(`Transformed ${transformedData.length} transfers`, transformedData);
@@ -343,6 +368,7 @@ export function useTransfers({ defaultStatus = 'Planned' }: UseTransfersProps = 
       const search = searchTerm.toLowerCase();
       result = result.filter(transfer =>
         transfer.passengerName.toLowerCase().includes(search) ||
+        transfer.reservationId.toLowerCase().includes(search) ||
         transfer.bookingReference.toLowerCase().includes(search) ||
         (transfer.flightNumber && transfer.flightNumber.toLowerCase().includes(search)) ||
         transfer.origin.toLowerCase().includes(search) ||

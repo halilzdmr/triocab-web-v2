@@ -137,11 +137,11 @@ const getReservationsByOperationEmail = async (operationEmail, statusFilter, sta
       console.log(`[${new Date().toISOString()}] ${!hasDateFilter ? 'No date filter provided, applying 1000 record limit' : 'Date filter applied, no record limit needed'}`);
       
       const query1 = `
-        SELECT Pickup_Address__c, Flight_Number__c, Pickup_Resolved_Region__c, Dropoff_Address__c, 
+        SELECT Id,Name,Pickup_Address__c, Flight_Number__c, Pickup_Resolved_Region__c, Dropoff_Address__c, 
                Dropoff_Resolved_Region__c, Pickup_Date_Time__c, Additional_Comments__c, 
                Passenger_Count__c, Passenger_Name__c, Passenger_Telephone_Number__c, 
                Journey_Status__c, Vehicle_Type__c, Add_Ons__c, Supplier_Net_Price__c,
-               Flight_Direction__c
+               Flight_Direction__c, Pickup_Location__c, Dropoff_Location__c
         FROM Reservation__c 
         WHERE ${whereClause}
         ORDER BY Pickup_Date_Time__c ASC
@@ -366,8 +366,61 @@ const getReservationsSummary = async (operationEmail, statusFilter, startDate, e
   }
 };
 
+/**
+ * Fetches a single reservation by its ID
+ * @param {string} id - The Salesforce ID of the reservation
+ * @returns {Promise<Object>} The reservation record
+ * 
+ * Applying rule: Always add debug logs & comments in the code for easier debug & readability
+ */
+const getReservationById = async (id) => {
+  try {
+    console.log(`[${new Date().toISOString()}] Fetching reservation by ID: ${id}`);
+    
+    // Create connection
+    const conn = await createSalesforceConnection();
+    
+    // Query for the specific reservation by ID
+    // Applying rule: Always add debug logs & comments in the code for easier debug & readability
+    // Only use field names that exist in the Salesforce org
+    console.log(`[${new Date().toISOString()}] Building SOQL query for reservation ID: ${id}`);
+    
+    // Ensure consistent casing in field names
+    // Added debug logging to show exact field names being used
+    // Applying rule: Always add debug logs & comments in the code for easier debug & readability
+    console.debug('Using standardized location field names in query');    
+
+    const query = `
+      SELECT Id, Name, Account__r.Name, Journey_Status__c, Flight_Number__c, Flight_Direction__c,
+        Pickup_Date_Time__c, Pickup_Address__c, Dropoff_Address__c, Passenger_Name__c,
+        Passenger_Count__c, Passenger_Telephone_Number__c, Vehicle_Type__c, Supplier_Net_Price__c,
+        Pickup_Location__Latitude__s, Pickup_Location__Longitude__s,
+        Dropoff_Location__Latitude__s, Dropoff_Location__Longitude__s
+      FROM Reservation__c
+      WHERE Id = '${id}'
+    `;
+    
+    console.log(`[${new Date().toISOString()}] Executing SOQL query for reservation by ID:\n${query}`);
+    
+    // Execute the query
+    const result = await conn.query(query);
+    
+    if (result.records && result.records.length > 0) {
+      console.log(`[${new Date().toISOString()}] Successfully fetched reservation with ID: ${id}`);
+      return result.records[0];
+    } else {
+      console.log(`[${new Date().toISOString()}] No reservation found with ID: ${id}`);
+      return null;
+    }
+  } catch (error) {
+    console.error(`[${new Date().toISOString()}] Error fetching reservation by ID:`, error);
+    throw error;
+  }
+};
+
 module.exports = {
   createSalesforceConnection,
   getReservationsByOperationEmail,
-  getReservationsSummary
+  getReservationsSummary,
+  getReservationById
 };

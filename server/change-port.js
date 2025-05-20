@@ -25,7 +25,7 @@ try {
   
   console.log('✅ Server port changed from 5000 to 5001');
   console.log('🔄 Please restart your server with: npm run dev');
-  console.log('⚠️  Remember to update API_BASE_URL in your frontend to: http://localhost:5001');
+  console.log('⚠️  Remember to update API_BASE_URL in your frontend to: http://192.168.90.184:5001');
 } catch (error) {
   console.error('❌ Error updating port:', error);
 }
