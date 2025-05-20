@@ -12,7 +12,7 @@ import TransfersTable from '../components/transfers/TransfersTable';
 import TransferDetailDrawer from '../components/transfers/TransferDetailDrawer';
 import EmptyState from '../components/transfers/EmptyState';
 import { useTransfers } from '../hooks/useTransfers';
-import { format } from 'date-fns'; // Keep format since it's used for date formatting
+// Removed unused import: format
 import { useAuth } from '../contexts/AuthContext'; // For getting the JWT token
 
 /**
@@ -24,6 +24,8 @@ const DashboardPage: React.FC = () => {
   // Destructure state and handlers from our custom hook
   // Applying rule: Always add debug logs & comments in the code for easier debug & readability
   // We're only showing 'Planned' status records, so we don't need the status filter variables
+  // Destructure state and handlers from our custom hook
+  // Applying rule: Always add debug logs & comments in the code for easier debug & readability
   const { 
     transfers, 
     isLoading, 
@@ -37,6 +39,7 @@ const DashboardPage: React.FC = () => {
     setIsDrawerOpen,
     handleViewTransfer,
     statusFilter,
+    setStatusFilter,
     // Only need the account name from summary data now
     summaryData
   } = useTransfers();
@@ -199,15 +202,24 @@ const DashboardPage: React.FC = () => {
               />
             </div>
             
-            {/* Status Display */}
+            {/* Status Filter */}
             <div className="w-full md:w-1/2">
               <label className="text-gray-700 text-sm font-medium mb-1 block">
                 Status
               </label>
-              <div className="rounded-md border border-gray-300 shadow-sm p-2 bg-white flex items-center h-10">
-                <div className="h-2 w-2 rounded-full bg-blue-500 mr-2"></div>
-                <span className="text-gray-800">Planned</span>
-              </div>
+              <select
+                className="rounded-md border border-gray-300 shadow-sm p-2 bg-white h-10 w-full"
+                value={statusFilter}
+                onChange={(e) => {
+                  // Applying rule: Always add debug logs & comments in the code for easier debug & readability
+                  console.debug('Status filter changed:', e.target.value);
+                  setStatusFilter(e.target.value);
+                }}
+              >
+                <option value="Planned">Planned</option>
+                <option value="Completed">Completed</option>
+                <option value="Cancelled with Costs">Cancelled with Costs</option>
+              </select>
             </div>
           </motion.div>
           {/* Table or Empty State */}

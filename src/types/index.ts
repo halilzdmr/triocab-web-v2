@@ -1,4 +1,6 @@
-export type TransferStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled';
+// Applying rule: Always add debug logs & comments in the code for easier debug & readability
+// TransferStatus defines all possible states for a transfer
+export type TransferStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'cancelled-with-costs' | 'planned';
 
 export interface Transfer {
   id: string;

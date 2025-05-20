@@ -64,11 +64,14 @@ const getTransfers = asyncHandler(async (req, res) => {
     let filteredReservations = [...reservations];
     
     // Filter by status if provided
+    // Applying rule: Always add debug logs & comments in the code for easier debug & readability
     if (status) {
       console.log(`[${new Date().toISOString()}] Filtering by status: ${status}`);
+      // Added support for 'Completed' and 'Cancelled with Costs'
       filteredReservations = filteredReservations.filter(res => 
         res.Journey_Status__c === status
       );
+      console.log(`[${new Date().toISOString()}] After status filtering: ${filteredReservations.length} reservations remain`);
     }
     /*
     // Filter by date range if provided

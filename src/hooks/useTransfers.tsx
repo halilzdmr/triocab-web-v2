@@ -32,6 +32,8 @@ interface TransferSummary {
   accountName?: string; // Account name for welcome message
 }
 
+// Applying rule: Always add debug logs & comments in the code for easier debug & readability
+// Supports 'Planned', 'Completed', 'Cancelled with Costs' as status filters from Salesforce
 export function useTransfers({ defaultStatus = 'Planned' }: UseTransfersProps = {}) {
   // Access auth context for token
   const { user } = useAuth();
@@ -78,9 +80,13 @@ export function useTransfers({ defaultStatus = 'Planned' }: UseTransfersProps = 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   // Map Salesforce status to our frontend status types
+  // Applying rule: Always add debug logs & comments in the code for easier debug & readability
   const mapStatusFromSalesforce = (sfStatus: string): TransferStatus => {
+    console.log(`Mapping Salesforce status: ${sfStatus} to frontend status`);
+    
     switch (sfStatus) {
       case 'Planned':
+        return 'planned';
       case 'Driver Underway':
       case 'Driver Arrived':
       case 'Journey In Progress':
@@ -88,9 +94,11 @@ export function useTransfers({ defaultStatus = 'Planned' }: UseTransfersProps = 
       case 'Completed':
         return 'completed';
       case 'No Show':
-      case 'Cancelled With Costs':
         return 'cancelled';
+      case 'Cancelled with Costs':
+        return 'cancelled-with-costs';
       default:
+        console.log(`Unknown status from Salesforce: ${sfStatus}, defaulting to pending`);
         return 'pending'; // Default to pending for unknown statuses
     }
   };
