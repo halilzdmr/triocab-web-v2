@@ -385,8 +385,8 @@ const downloadTransfersAsExcel = asyncHandler(async (req, res) => {
         
         // Fix: Use UTC hours to ensure consistency with dashboard display
         // Applying rule: Always add debug logs & comments in the code for easier debug & readability
-        const hours = String(pickupDateTime.getUTCHours()).padStart(2, '0');
-        const minutes = String(pickupDateTime.getUTCMinutes()).padStart(2, '0');
+        const hours = String(pickupDateTime.getHours()).padStart(2, '0');
+        const minutes = String(pickupDateTime.getMinutes()).padStart(2, '0');
         const formattedTime = `${hours}:${minutes}`;
         
         sheet.addRow({
@@ -454,8 +454,8 @@ const downloadTransfersAsExcel = asyncHandler(async (req, res) => {
         
         // Fix: Use UTC hours to ensure consistency with dashboard display
         // Applying rule: Always add debug logs & comments in the code for easier debug & readability
-        const hours = String(pickupDateTime.getUTCHours()).padStart(2, '0');
-        const minutes = String(pickupDateTime.getUTCMinutes()).padStart(2, '0');
+        const hours = String(pickupDateTime.getHours()).padStart(2, '0');
+        const minutes = String(pickupDateTime.getMinutes()).padStart(2, '0');
         const formattedTime = `${hours}:${minutes}`;
         
         // Applying rule: Always add debug logs & comments in the code for easier debug & readability
