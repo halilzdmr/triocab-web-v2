@@ -1,15 +1,24 @@
 /**
  * Slack notification configuration
  * This module provides functionality to send notifications to Slack channels
+ * 
+ * @version 1.1.0
  */
 
 const axios = require('axios');
 
-// Slack webhook URL for notifications
-const SLACK_WEBHOOK_URL = 'https://hooks.slack.com/services/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';
+// Get Slack webhook URL from environment variables with fallback
+// The URL should be in format: https://hooks.slack.com/services/XXX/YYY/ZZZ
+const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL || '';
+
+// Enable or disable Slack notifications entirely
+const SLACK_ENABLED = process.env.SLACK_ENABLED !== 'false' && SLACK_WEBHOOK_URL.length > 0;
 
 // Debug setting to enable/disable logging
-const DEBUG = process.env.NODE_ENV !== 'production';
+const DEBUG = process.env.NODE_ENV !== 'production' || process.env.DEBUG === 'true';
+
+// Log status of Slack integration on module load
+console.log(`[Slack Config] Slack notifications ${SLACK_ENABLED ? 'ENABLED' : 'DISABLED'}`);
 
 // Icon emojis for different event types
 const ICONS = {
@@ -25,21 +34,36 @@ const ICONS = {
  * @param {Object} options - Optional parameters for the notification
  * @param {string} [options.channel] - The channel to send the message to
  * @param {string} [options.username] - The username to send the message as
- * @param {string} [options.emoji] - The emoji to use as the icon
+ * @param {string} [options.icon_emoji] - The emoji to use as the icon
  * @param {Object} [options.attachments] - Additional attachments for the message
- * @returns {Promise<Object>} - The response from Slack
+ * @returns {Promise<Object>} - The response from Slack or error object
  */
 const sendSlackNotification = async (message, options = {}) => {
   // Early return if no message provided
   if (!message) {
-    console.error('No message provided to sendSlackNotification');
+    console.error('[Slack Notification] No message provided to sendSlackNotification');
     return { success: false, error: 'No message provided' };
+  }
+
+  // Early return if Slack notifications are disabled
+  if (!SLACK_ENABLED) {
+    if (DEBUG) {
+      console.log('[Slack Notification] Notifications disabled, skipping:', message);
+    }
+    return { success: false, error: 'Slack notifications are disabled' };
+  }
+
+  // Early return if webhook URL is not valid
+  if (!SLACK_WEBHOOK_URL || !SLACK_WEBHOOK_URL.startsWith('https://hooks.slack.com/')) {
+    console.error('[Slack Notification] Invalid webhook URL');
+    return { success: false, error: 'Invalid webhook URL' };
   }
 
   try {
     // Debug logging
     if (DEBUG) {
       console.log(`[Slack Notification] Sending message: ${message}`);
+      console.log(`[Slack Notification] Webhook URL: ${SLACK_WEBHOOK_URL.substring(0, 30)}...`);
     }
 
     // Construct the payload
@@ -58,10 +82,14 @@ const sendSlackNotification = async (message, options = {}) => {
 
     return { success: true, response: response.data };
   } catch (error) {
-    // Log the error
+    // Log the error with detailed information
     console.error(`[Slack Notification] Error sending message: ${error.message}`);
+    if (error.response) {
+      console.error(`[Slack Notification] Response status: ${error.response.status}`);
+      console.error(`[Slack Notification] Response data:`, error.response.data);
+    }
     
-    return { success: false, error: error.message };
+    return { success: false, error: error.message, details: error.response?.data };
   }
 };
 
