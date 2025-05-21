@@ -320,7 +320,7 @@ const authenticateMagicLink = asyncHandler(async (req, res) => {
     // Authenticate magic link token
     const response = await stytchClient.magicLinks.authenticate({
       token,
-      session_duration_minutes: 60 * 24 * 7 // 7 day session
+      session_duration_minutes: 60 * 24 * 1 // 7 day session
     });
     
     console.log(`[${new Date().toISOString()}] Magic link authenticated successfully for user: ${response.user_id}`);
