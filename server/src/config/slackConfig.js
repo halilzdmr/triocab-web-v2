@@ -6,7 +6,7 @@
 const axios = require('axios');
 
 // Slack webhook URL for notifications
-const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL || 'https://hooks.slack.com/services/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';
+const SLACK_WEBHOOK_URL = 'https://hooks.slack.com/services/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';
 
 // Debug setting to enable/disable logging
 const DEBUG = process.env.NODE_ENV !== 'production';
