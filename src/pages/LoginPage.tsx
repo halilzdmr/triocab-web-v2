@@ -49,7 +49,7 @@ const LoginPage: React.FC = () => {
 
   const handleVerifyCode = async (code: string) => {
     // Log that we're attempting to verify the code
-    #console.log(`Verifying OTP code: ${code} with method ID: ${methodId}`);
+    //console.log(`Verifying OTP code: ${code} with method ID: ${methodId}`);
     
     // Use the verifyOtp function from our updated AuthContext
     const success = await verifyOtp(methodId, code);

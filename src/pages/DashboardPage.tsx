@@ -54,8 +54,8 @@ const DashboardPage: React.FC = () => {
   // Debug log for account name in summary data
   // Applying rule: Always add debug logs & comments in the code for easier debug & readability
   React.useEffect(() => {
-    #console.log('DashboardPage summaryData:', summaryData);
-    #console.log('Account name in DashboardPage:', summaryData?.accountName);
+    //console.log('DashboardPage summaryData:', summaryData);
+    //console.log('Account name in DashboardPage:', summaryData?.accountName);
   }, [summaryData]);
 
   // Animation variants

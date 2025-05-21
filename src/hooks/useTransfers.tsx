@@ -64,10 +64,10 @@ export function useTransfers({ defaultStatus = 'Planned' }: UseTransfersProps = 
     const tomorrow = new Date();
     tomorrow.setDate(today.getDate() + 1);
     
-    #console.log('Initializing date range with defaults:', {
+    /*console.log('Initializing date range with defaults:', {
       start: today.toISOString(),
       end: tomorrow.toISOString()
-    });
+    });*/
     
     return {
       start: today,
@@ -82,7 +82,7 @@ export function useTransfers({ defaultStatus = 'Planned' }: UseTransfersProps = 
   // Map Salesforce status to our frontend status types
   // Applying rule: Always add debug logs & comments in the code for easier debug & readability
   const mapStatusFromSalesforce = (sfStatus: string): TransferStatus => {
-    #console.log(`Mapping Salesforce status: ${sfStatus} to frontend status`);
+    //console.log(`Mapping Salesforce status: ${sfStatus} to frontend status`);
     
     switch (sfStatus) {
       case 'Planned':
@@ -98,7 +98,7 @@ export function useTransfers({ defaultStatus = 'Planned' }: UseTransfersProps = 
       case 'Cancelled with Costs':
         return 'cancelled-with-costs';
       default:
-        #console.log(`Unknown status from Salesforce: ${sfStatus}, defaulting to pending`);
+        //console.log(`Unknown status from Salesforce: ${sfStatus}, defaulting to pending`);
         return 'pending'; // Default to pending for unknown statuses
     }
   };
@@ -126,7 +126,7 @@ export function useTransfers({ defaultStatus = 'Planned' }: UseTransfersProps = 
         queryParams.append('end_date', dateRange.end.toISOString());
       }
       
-      #console.log('Fetching summary data with params:', queryParams.toString());
+      //console.log('Fetching summary data with params:', queryParams.toString());
       
       // Fetch summary data from our backend API
       const response = await fetch(`${API_BASE_URL}/transfers/summary?${queryParams}`, {
@@ -142,12 +142,12 @@ export function useTransfers({ defaultStatus = 'Planned' }: UseTransfersProps = 
       }
       
       const result = await response.json();
-      #console.log('Summary data received:', result);
+      //console.log('Summary data received:', result);
       
       if (result.status === 'success' && result.data) {
         // Debug raw data received from API
-        #console.log('Raw API response data:', result.data);
-        #console.log('Account name in response:', result.data.accountName);
+        //console.log('Raw API response data:', result.data);
+        //console.log('Account name in response:', result.data.accountName);
         
         const formattedTotalRevenue = new Intl.NumberFormat('en-US', {
           style: 'currency',
@@ -163,15 +163,15 @@ export function useTransfers({ defaultStatus = 'Planned' }: UseTransfersProps = 
           accountName: result.data.accountName || ''
         };
         
-        #console.log('Setting summary data with account name:', newSummaryData.accountName);
+        //console.log('Setting summary data with account name:', newSummaryData.accountName);
         setSummaryData(newSummaryData);
 
-        #console.log('Summary data fetched successfully', {
+        /*console.log('Summary data fetched successfully', {
           totalRecords: result.data.totalRecords,
           totalRevenue: result.data.totalRevenue,
           formattedTotalRevenue,
           accountName: result.data.accountName
-        });
+        });*/
       } else {
         console.error('Invalid summary data format', result);
         setSummaryData(null);
@@ -189,7 +189,7 @@ export function useTransfers({ defaultStatus = 'Planned' }: UseTransfersProps = 
   const fetchTransfers = useCallback(async () => {
     // Don't make duplicate API calls if one is already in progress
     if (requestInProgress.current) {
-      #console.log('Skipping duplicate API call - request already in progress');
+      //console.log('Skipping duplicate API call - request already in progress');
       return;
     }
     
@@ -206,13 +206,13 @@ export function useTransfers({ defaultStatus = 'Planned' }: UseTransfersProps = 
 
     try {
       // Applying rule: Always add debug logs & comments in the code for easier debug & readability
-      #console.log('Fetching transfers from API with filters:', { 
+      /*console.log('Fetching transfers from API with filters:', { 
         status: statusFilter,
         dateRange: {
           start: dateRange.start ? dateRange.start.toISOString() : 'none',
           end: dateRange.end ? dateRange.end.toISOString() : 'none'
         }
-      });
+      });*/
       setIsLoading(true);
       setError(null);
       
@@ -243,7 +243,7 @@ export function useTransfers({ defaultStatus = 'Planned' }: UseTransfersProps = 
       }
       
       const { data } = await response.json();
-      #console.log(`Successfully fetched ${data?.length || 0} raw records from API`, data);
+      //console.log(`Successfully fetched ${data?.length || 0} raw records from API`, data);
       
       // Process and store the fetched transfers
       const transformedData: Transfer[] = data.map((reservation: any) => {
@@ -299,7 +299,7 @@ export function useTransfers({ defaultStatus = 'Planned' }: UseTransfersProps = 
           dropoffLocation
         };
       });
-      #console.log(`Transformed ${transformedData.length} transfers`, transformedData);
+      //console.log(`Transformed ${transformedData.length} transfers`, transformedData);
       setAllTransfers(transformedData);
       
       // Initial filtering is applied automatically via useEffect
@@ -317,26 +317,26 @@ export function useTransfers({ defaultStatus = 'Planned' }: UseTransfersProps = 
   // Apply filters to the transfers - now only applies client-side filters
   // Status filtering is now handled by the API call directly
   const applyFilters = useCallback(() => {
-    #console.log('Applying client-side filters:', {
+    /*console.log('Applying client-side filters:', {
       dateRange: {
         start: dateRange.start ? dateRange.start.toISOString() : 'none',
         end: dateRange.end ? dateRange.end.toISOString() : 'none'
       },
       searchTerm: searchTerm || 'none',
       totalTransfers: allTransfers.length
-    });
+    });*/
     
     let result = [...allTransfers];
     console.debug('Initial result for filtering (allTransfers copy):', result);
     
     // Filter by date range (supports open-ended ranges)
     if (dateRange.start || dateRange.end) {
-      #console.log('Applying date range filter:', {
+      /*console.log('Applying date range filter:', {
         start: dateRange.start ? dateRange.start.toISOString() : 'none',
         end: dateRange.end ? dateRange.end.toISOString() : 'none',
         transfersBeforeDateFilter: result.length,
         sampleDataBeforeDateFilter: result.slice(0, 3).map(t => ({ id: t.id, date: t.date, status: t.status}))
-      });
+      });*/
       
       // Use utility functions to handle date parsing and range comparison reliably
       result = result.filter(transfer => {
@@ -351,14 +351,14 @@ export function useTransfers({ defaultStatus = 'Planned' }: UseTransfersProps = 
           // Debug log for a random sample (to avoid flooding console)
           // Let's log more aggressively for now, maybe first 5
           if (result.indexOf(transfer) < 5) {
-            #console.log(`Transfer ${transfer.id} date comparison:`, {
+            /*console.log(`Transfer ${transfer.id} date comparison:`, {
               transferId: transfer.id,
               dateString: transfer.date,
               parsedDate: transferDate.toISOString(),
               startDate: dateRange.start ? dateRange.start.toISOString() : 'none',
               endDate: dateRange.end ? dateRange.end.toISOString() : 'none',
               inRange: isInRange
-            });
+            });*/
           }
            
           return isInRange;
@@ -368,7 +368,7 @@ export function useTransfers({ defaultStatus = 'Planned' }: UseTransfersProps = 
         }
       });
       
-      #console.log(`After date filtering: ${result.length} transfers remain`);
+      //console.log(`After date filtering: ${result.length} transfers remain`);
     }
     
     // Filter by search term
@@ -383,7 +383,7 @@ export function useTransfers({ defaultStatus = 'Planned' }: UseTransfersProps = 
         transfer.destination.toLowerCase().includes(search)
       );
       
-      #console.log(`After search term filtering: ${result.length} transfers remain`);
+      //console.log(`After search term filtering: ${result.length} transfers remain`);
     }
     
     setFilteredTransfers(result);
@@ -397,19 +397,19 @@ export function useTransfers({ defaultStatus = 'Planned' }: UseTransfersProps = 
     
     // Only fetch on first load to prevent multiple identical API calls
     if (!initialLoadComplete.current) {
-      #console.log('First load detected - making initial API calls with default filters:', {
+      /*console.log('First load detected - making initial API calls with default filters:', {
         status: statusFilter,
         dateRange: {
           start: dateRange.start?.toISOString(),
           end: dateRange.end?.toISOString()
         }
-      });
+      });*/
       
       initialLoadComplete.current = true;
       fetchTransfers();
       fetchSummaryData(); // Also fetch summary data on initial load
     } else {
-      #console.log('Skipping duplicate API calls - initial load already completed');
+      //console.log('Skipping duplicate API calls - initial load already completed');
     }
     // We only include user in the dependency array to prevent excessive re-renders
     // fetchTransfers is removed to prevent the circular dependency issue
@@ -421,13 +421,13 @@ export function useTransfers({ defaultStatus = 'Planned' }: UseTransfersProps = 
     if (!initialLoadComplete.current) return;
     
     // For subsequent filter changes, fetch again
-    #console.log('Filter changed - fetching with new filters:', {
+    /*console.log('Filter changed - fetching with new filters:', {
       status: statusFilter,
       dateRange: {
         start: dateRange.start?.toISOString(),
         end: dateRange.end?.toISOString()
       }
-    });
+    });*/
     
     fetchTransfers();
     fetchSummaryData(); // Also update summary data when filters change

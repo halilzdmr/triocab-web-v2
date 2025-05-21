@@ -15,21 +15,21 @@ const STYTCH_API_URL = import.meta.env.PROD
   : 'https://test-api.stytch.com/v1';
 
 // Debug log
-#console.log(`Stytch API URL: ${STYTCH_API_URL}`);
+//console.log(`Stytch API URL: ${STYTCH_API_URL}`);
 
 // Stytch configuration - replace these with your actual Stytch project credentials
 // Using Vite's import.meta.env for environment variables
 const STYTCH_PUBLIC_TOKEN = 'public-token-live-83ed4115-ed31-4b05-9634-2fdbc83ee813';
 
 // Debug log for token initialization (without showing the actual token)
-#console.log(`Stytch token initialized: ${STYTCH_PUBLIC_TOKEN ? '✓' : '✗'}`);
+//console.log(`Stytch token initialized: ${STYTCH_PUBLIC_TOKEN ? '✓' : '✗'}`);
 
 // Your backend API URL for user data and authentication
 const AUTH_API_URL = import.meta.env.PROD 
   ? 'https://api.bodrumluxurytravel.com/stytch' 
   : 'http://localhost:5001/stytch';
 // Debug log for API URL – ensuring production uses HTTPS custom domain
-#console.log(`Using API URL: ${AUTH_API_URL}`);
+//console.log(`Using API URL: ${AUTH_API_URL}`);
 
 /**
  * Helper function to make API calls
@@ -121,7 +121,7 @@ const useProvideAuth = (): AuthContextType => {
   
   // Add debug logs for easier debugging
   useEffect(() => {
-    #console.log('Auth state:', { isAuthenticated, user });
+    //console.log('Auth state:', { isAuthenticated, user });
   }, [isAuthenticated, user]);
   
   // Check for existing session on initial load
@@ -146,7 +146,7 @@ const useProvideAuth = (): AuthContextType => {
               organizationId: response.organization_id,
               token: sessionToken
             });
-            #console.log('Session restored from token');
+            //console.log('Session restored from token');
           }
         } catch (err) {
           console.error('Failed to verify existing session:', err);
@@ -172,7 +172,7 @@ const useProvideAuth = (): AuthContextType => {
     
     try {
       // Debug log
-      #console.log(`Requesting Stytch OTP for ${email}`);
+      //console.log(`Requesting Stytch OTP for ${email}`);
       
       // Send request to your backend which will call Stytch API
       const data = await apiCall(`${AUTH_API_URL}/login`, {
@@ -181,7 +181,7 @@ const useProvideAuth = (): AuthContextType => {
       });
       
       // Debug log success
-      #console.log('Login API call successful:', data);
+      //console.log('Login API call successful:', data);
       
       // Save email for verification step
       localStorage.setItem('pendingAuth', email);
@@ -214,7 +214,7 @@ const useProvideAuth = (): AuthContextType => {
     
     try {
       // Debug log
-      #console.log(`Verifying OTP for ${pendingEmail} with email ID: ${emailId}`);
+      //console.log(`Verifying OTP for ${pendingEmail} with email ID: ${emailId}`);
       
       // Send verification request to your backend
       const data = await apiCall(`${AUTH_API_URL}/verify`, {
@@ -227,13 +227,13 @@ const useProvideAuth = (): AuthContextType => {
       });
       
       // Debug log
-      #console.log('Authentication response:', data);
+      //console.log('Authentication response:', data);
       
       // Get the session token and member data from the response
       const { token, member_id, organization_id } = data;
       
       // Debug log
-      #console.log(`Authentication successful: Member ID ${member_id}, Organization ID: ${organization_id}`);
+      //console.log(`Authentication successful: Member ID ${member_id}, Organization ID: ${organization_id}`);
       
       // Create user object with authentication data
       const authenticatedUser = {
@@ -265,7 +265,7 @@ const useProvideAuth = (): AuthContextType => {
    */
   const logout = async (): Promise<void> => {
     try {
-      #console.log('Logging out user and revoking Stytch session');
+      //console.log('Logging out user and revoking Stytch session');
       
       // Call backend to revoke the Stytch session
       if (user?.token) {

@@ -48,8 +48,8 @@ const verifyJwt = asyncHandler(async (req, res, next) => {
     console.log(`[${new Date().toISOString()}] JWT verified successfully for ${decoded.email}`);
     
     // Send Slack notification for successful authentication
-    notifyUserEvent('user_auth_success', { email: decoded.email, url: req.originalUrl })
-      .catch(err => console.error(`[Slack Notification Error] ${err.message}`));
+    /*notifyUserEvent('user_auth_success', { email: decoded.email, url: req.originalUrl })
+      .catch(err => console.error(`[Slack Notification Error] ${err.message}`));*/
     
     next();
   } catch (error) {
