@@ -21,7 +21,7 @@ function adjustToUserTimezone(date) {
   // Create a new Date object from the input date if it's a string
   const inputDate = date instanceof Date ? date : new Date(date);
   // Add 3 hours (user timezone +3) - convert hours to milliseconds
-  return new Date(inputDate.getTime() );
+  return new Date(inputDate.getTime() + (3 * 60 * 60 * 1000));
 }
 
 /**
