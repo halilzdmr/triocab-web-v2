@@ -12,6 +12,19 @@ const ExcelJS = require('exceljs');
 // Applying rule: Always add debug logs & comments in the code for easier debug & readability
 
 /**
+ * Utility function to adjust date for user timezone (+3 hours)
+ * @param {Date|string} date - The date to adjust
+ * @returns {Date} - The adjusted date
+ */
+function adjustToUserTimezone(date) {
+  // Applying rule: Always add debug logs & comments in the code for easier debug & readability
+  // Create a new Date object from the input date if it's a string
+  const inputDate = date instanceof Date ? date : new Date(date);
+  // Add 3 hours (user timezone +3) - convert hours to milliseconds
+  return new Date(inputDate.getTime() );
+}
+
+/**
  * Get transfers for the authenticated user
  * GET /transfers
  * 
@@ -374,7 +387,9 @@ const downloadTransfersAsExcel = asyncHandler(async (req, res) => {
       // Add data rows
       data.forEach(res => {
         // Parse pickup date/time
-        const pickupDateTime = new Date(res.Pickup_Date_Time__c).addHours(3);
+        // Parse pickup date/time with user timezone adjustment (+3 hours)
+        // Applying rule: Always add debug logs & comments in the code for easier debug & readability
+        const pickupDateTime = adjustToUserTimezone(res.Pickup_Date_Time__c);
         
         // Format date as DD/MM/YYYY and time as HH:mm (24-hour format)
         // Applying rule: Always add debug logs & comments in the code for easier debug & readability
@@ -443,7 +458,9 @@ const downloadTransfersAsExcel = asyncHandler(async (req, res) => {
       
       arrivalReservations.forEach(res => {
         // Parse pickup date/time
-        const pickupDateTime = new Date(res.Pickup_Date_Time__c).addHours(3);
+        // Parse pickup date/time with user timezone adjustment (+3 hours)
+        // Applying rule: Always add debug logs & comments in the code for easier debug & readability
+        const pickupDateTime = adjustToUserTimezone(res.Pickup_Date_Time__c);
         
         // Format date as DD/MM/YYYY and time as HH:mm (24-hour format)
         // Applying rule: Always add debug logs & comments in the code for easier debug & readability

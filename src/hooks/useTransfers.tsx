@@ -13,7 +13,7 @@ import { formatDate, parseFormattedDate, isDateInRange } from '../utils/dateUtil
 // Applying rule: Always add debug logs & comments in the code for easier debug & readability
 const API_BASE_URL = process.env.NODE_ENV === 'production' 
   ? 'https://api.bodrumluxurytravel.com' 
-  : 'http://192.168.90.184:5001';  // Using the same IP address that Vite shows in the Network URL
+  : 'http://localhost:5001';  // Using the same IP address that Vite shows in the Network URL
 
 interface UseTransfersProps {
   defaultStatus?: string;

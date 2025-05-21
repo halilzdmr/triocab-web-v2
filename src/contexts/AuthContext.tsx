@@ -27,7 +27,7 @@ console.log(`Stytch token initialized: ${STYTCH_PUBLIC_TOKEN ? '✓' : '✗'}`);
 // Your backend API URL for user data and authentication
 const AUTH_API_URL = import.meta.env.PROD 
   ? 'https://api.bodrumluxurytravel.com/stytch' 
-  : 'http://192.168.90.184:5001/stytch';
+  : 'http://localhost:5001/stytch';
 // Debug log for API URL – ensuring production uses HTTPS custom domain
 console.log(`Using API URL: ${AUTH_API_URL}`);
 

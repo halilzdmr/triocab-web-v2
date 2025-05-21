@@ -117,7 +117,7 @@ const DashboardPage: React.FC = () => {
                 // API base URL - adjust for production vs development
                 const API_BASE_URL = process.env.NODE_ENV === 'production' 
                   ? 'https://api.bodrumluxurytravel.com' 
-                  : 'http://192.168.90.184:5001';
+                  : 'http://localhost:5001';
                 
                 // Construct the download URL with query parameters
                 // Remove the /api prefix since the server doesn't have it
