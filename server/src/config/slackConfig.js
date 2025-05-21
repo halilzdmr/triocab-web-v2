@@ -202,13 +202,13 @@ const notifyLoginEvent = async (userData, ipAddress = 'Unknown IP', authMethod =
   ];
   
   // Add member ID if available
-  if (userData.memberId) {
+  /*if (userData.memberId) {
     attachments[0].fields.push({
       title: 'Member ID',
       value: userData.memberId,
       short: true
     });
-  }
+  }*/
   
   // Send the notification with login-specific formatting
   return sendSlackNotification(message, {
