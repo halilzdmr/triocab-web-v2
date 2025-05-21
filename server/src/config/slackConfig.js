@@ -11,6 +11,14 @@ const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL || 'https://hooks.slack.
 // Debug setting to enable/disable logging
 const DEBUG = process.env.NODE_ENV !== 'production';
 
+// Icon emojis for different event types
+const ICONS = {
+  login: ':unlock:',
+  error: ':x:',
+  success: ':white_check_mark:',
+  warning: ':warning:'
+};
+
 /**
  * Send a notification to Slack
  * @param {string} message - The message to send to Slack
@@ -111,8 +119,80 @@ const notifyUserEvent = async (eventType, userData = {}, error = null) => {
   });
 };
 
+/**
+ * Send a login notification to Slack when a user logs in
+ * @param {Object} userData - User data for the login event
+ * @param {string} userData.email - User email
+ * @param {string} [userData.memberId] - Optional member ID
+ * @param {string} [ipAddress] - IP address of the login
+ * @param {string} [authMethod] - Authentication method used (e.g., 'OTP', 'Stytch')
+ * @returns {Promise<Object>} - The response from Slack
+ */
+const notifyLoginEvent = async (userData, ipAddress = 'Unknown IP', authMethod = 'Unknown') => {
+  // Early return if userData is not provided
+  if (!userData || !userData.email) {
+    console.error('[Slack Notification] Missing user data for login notification');
+    return { success: false, error: 'Missing user data' };
+  }
+
+  // Debug log
+  if (DEBUG) {
+    console.log(`[Slack Notification] Processing login notification for ${userData.email}`);
+  }
+  
+  // Format the login message
+  const message = `🔐 *Login Alert*: User *${userData.email}* logged in`;
+  
+  // Create attachments with login details
+  const attachments = [
+    {
+      color: '#36a64f', // Green color for success
+      fields: [
+        {
+          title: 'User',
+          value: userData.email,
+          short: true
+        },
+        {
+          title: 'Authentication Method',
+          value: authMethod,
+          short: true
+        },
+        {
+          title: 'IP Address',
+          value: ipAddress,
+          short: true
+        },
+        {
+          title: 'Login Time',
+          value: new Date().toISOString(),
+          short: true
+        }
+      ],
+      footer: 'Triocab Security Monitor'
+    }
+  ];
+  
+  // Add member ID if available
+  if (userData.memberId) {
+    attachments[0].fields.push({
+      title: 'Member ID',
+      value: userData.memberId,
+      short: true
+    });
+  }
+  
+  // Send the notification with login-specific formatting
+  return sendSlackNotification(message, {
+    username: 'Triocab Security',
+    icon_emoji: ICONS.login,
+    attachments
+  });
+};
+
 // Export the functions
 module.exports = {
   sendSlackNotification,
-  notifyUserEvent
+  notifyUserEvent,
+  notifyLoginEvent
 };

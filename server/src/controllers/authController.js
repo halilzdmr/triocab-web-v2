@@ -9,6 +9,9 @@ const { PutCommand, GetCommand, DeleteCommand } = require('@aws-sdk/lib-dynamodb
 const { SendEmailCommand } = require('@aws-sdk/client-ses');
 const { dynamoDocClient, sesClient } = require('../config/awsConfig');
 const { AppError } = require('../middleware/errorMiddleware');
+const { notifyLoginEvent } = require('../config/slackConfig');
+// For getting client IP address
+const requestIp = require('request-ip');
 
 // Constants
 const OTP_TABLE = 'OtpCodes';
@@ -245,6 +248,24 @@ const verifyCode = asyncHandler(async (req, res) => {
   );
   
   console.log(`[${new Date().toISOString()}] JWT token issued for ${email}`);
+  
+  // Send Slack notification for successful login
+  try {
+    // Get client IP address
+    const clientIp = requestIp.getClientIp(req) || 'Unknown IP';
+    
+    // Send login notification
+    await notifyLoginEvent(
+      { email },
+      clientIp,
+      'OTP Verification'
+    );
+    
+    console.log(`[${new Date().toISOString()}] Slack login notification sent for ${email}`);
+  } catch (slackError) {
+    // Don't fail authentication if Slack notification fails
+    console.error(`[${new Date().toISOString()}] Failed to send Slack login notification:`, slackError);
+  }
   
   res.status(200).json({
     status: 'success',

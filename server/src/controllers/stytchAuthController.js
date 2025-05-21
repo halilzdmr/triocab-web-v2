@@ -20,6 +20,9 @@ const asyncHandler = require('express-async-handler');
 const jwt = require('jsonwebtoken');
 const { stytchClient } = require('../config/stytchConfig');
 const { AppError } = require('../middleware/errorMiddleware');
+const { notifyLoginEvent } = require('../config/slackConfig');
+// For getting client IP address
+const requestIp = require('request-ip');
 
 // Constants for JWT configuration
 const JWT_EXPIRY = '7d'; // 7 days expiry for JWT
@@ -265,6 +268,28 @@ const verifyOtp = asyncHandler(async (req, res) => {
     
     // Additional debug log for successful authentication completion
     console.log(`[${new Date().toISOString()}] Authentication successful for ${email} with member_id: ${member_id}`);
+    
+    // Send Slack notification for successful login
+    try {
+      // Get client IP address
+      const clientIp = requestIp.getClientIp(req) || 'Unknown IP';
+      
+      // Send login notification
+      await notifyLoginEvent(
+        { 
+          email, 
+          memberId: member_id,
+          organizationId: org_id
+        },
+        clientIp,
+        'Stytch OTP'
+      );
+      
+      console.log(`[${new Date().toISOString()}] Slack login notification sent for ${email}`);
+    } catch (slackError) {
+      // Don't fail authentication if Slack notification fails
+      console.error(`[${new Date().toISOString()}] Failed to send Slack login notification:`, slackError);
+    }
 
   } catch (error) {
     console.error(`[${new Date().toISOString()}] Stytch verification error:`, error);
