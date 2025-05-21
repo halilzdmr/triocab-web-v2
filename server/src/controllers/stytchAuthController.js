@@ -25,7 +25,7 @@ const { notifyLoginEvent } = require('../config/slackConfig');
 const requestIp = require('request-ip');
 
 // Constants for JWT configuration
-const JWT_EXPIRY = '7d'; // 7 days expiry for JWT
+const JWT_EXPIRY = '1d'; // 1 days expiry for JWT
 
 /**
  * Check if email is in the allowed list (if ALLOWED_EMAILS is defined)

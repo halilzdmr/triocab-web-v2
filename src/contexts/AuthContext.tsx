@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useEffect, useRef } from 'react';
 
 /**
  * AuthContext.tsx - Authentication context using Stytch for secure login
@@ -124,12 +124,21 @@ const useProvideAuth = (): AuthContextType => {
     //console.log('Auth state:', { isAuthenticated, user });
   }, [isAuthenticated, user]);
   
-  // Check for existing session on initial load
+  // Check for existing session on initial load - use ref to prevent multiple calls
+  const sessionCheckCompleted = useRef(false);
+  
   useEffect(() => {
     const checkExistingSession = async () => {
+      // Skip if we've already checked the session
+      if (sessionCheckCompleted.current) {
+        console.debug('Session check already completed, skipping');
+        return;
+      }
+      
       const sessionToken = localStorage.getItem('stytch_session');
       if (sessionToken && !isAuthenticated) {
         try {
+          console.debug('Checking existing session token');
           // Verify the session with your backend
           const response = await apiCall(`${AUTH_API_URL}/session`, {
             method: 'GET',
@@ -140,13 +149,13 @@ const useProvideAuth = (): AuthContextType => {
           
           // If successful, set user state
           if (response.status === 'success') {
+            console.debug('Session verified successfully, setting user state');
             setUser({
               email: response.email,
               memberId: response.member_id,
               organizationId: response.organization_id,
               token: sessionToken
             });
-            //console.log('Session restored from token');
           }
         } catch (err) {
           console.error('Failed to verify existing session:', err);
@@ -155,11 +164,14 @@ const useProvideAuth = (): AuthContextType => {
           localStorage.removeItem('stytch_session');
         }
       }
+      
+      // Mark session check as completed
+      sessionCheckCompleted.current = true;
     };
     
     checkExistingSession();
     return () => {}; // Return empty cleanup function
-  }, [isAuthenticated]);
+  }, []); // Empty dependency array - only run once on mount
   
   /**
    * Request one-time passcode via email

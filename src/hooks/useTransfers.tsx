@@ -189,7 +189,7 @@ export function useTransfers({ defaultStatus = 'Planned' }: UseTransfersProps = 
   const fetchTransfers = useCallback(async () => {
     // Don't make duplicate API calls if one is already in progress
     if (requestInProgress.current) {
-      //console.log('Skipping duplicate API call - request already in progress');
+      console.debug('Skipping duplicate Salesforce API call - request already in progress');
       return;
     }
     
@@ -201,18 +201,22 @@ export function useTransfers({ defaultStatus = 'Planned' }: UseTransfersProps = 
     // Applying rule: Always add debug logs & comments in the code for easier debug & readability
     console.debug('Will store Salesforce IDs for transfer records to use when generating share links');
     
-    // Set request in progress flag
+    // Set request in progress flag and log the timestamp
     requestInProgress.current = true;
+    console.debug(`Starting Salesforce data fetch at ${new Date().toISOString()}`);
+    
+    // Create a unique request ID for this specific request (for debugging)
+    const requestId = Math.random().toString(36).substring(2, 10);
 
     try {
       // Applying rule: Always add debug logs & comments in the code for easier debug & readability
-      /*console.log('Fetching transfers from API with filters:', { 
+      console.debug(`[Request ${requestId}] Fetching transfers from API with filters:`, { 
         status: statusFilter,
         dateRange: {
           start: dateRange.start ? dateRange.start.toISOString() : 'none',
           end: dateRange.end ? dateRange.end.toISOString() : 'none'
         }
-      });*/
+      });
       setIsLoading(true);
       setError(null);
       
@@ -311,6 +315,7 @@ export function useTransfers({ defaultStatus = 'Planned' }: UseTransfersProps = 
     } finally {
       // Clear the request in progress flag
       requestInProgress.current = false;
+      console.debug(`[Request ${requestId}] Salesforce data fetch completed at ${new Date().toISOString()}`);
     }
   }, [user, statusFilter, dateRange]);
 
@@ -420,17 +425,33 @@ export function useTransfers({ defaultStatus = 'Planned' }: UseTransfersProps = 
     // Skip initial render - let the first useEffect handle it
     if (!initialLoadComplete.current) return;
     
-    // For subsequent filter changes, fetch again
-    /*console.log('Filter changed - fetching with new filters:', {
+    // Skip if a request is already in progress
+    if (requestInProgress.current) {
+      console.debug('Filter changed but skipping API call because a request is already in progress');
+      return;
+    }
+    
+    // For subsequent filter changes, fetch again with debounce
+    console.debug('Filter changed - fetching with new filters:', {
       status: statusFilter,
       dateRange: {
         start: dateRange.start?.toISOString(),
         end: dateRange.end?.toISOString()
       }
-    });*/
+    });
     
-    fetchTransfers();
-    fetchSummaryData(); // Also update summary data when filters change
+    // Use setTimeout to add a small delay before making the API call
+    // This helps prevent rapid consecutive filter changes from triggering multiple requests
+    const timeoutId = setTimeout(() => {
+      // Double-check that no request is in progress before proceeding
+      if (!requestInProgress.current) {
+        fetchTransfers();
+        fetchSummaryData(); // Also update summary data when filters change
+      }
+    }, 50);
+    
+    // Cleanup timeout if dependencies change before timeout fires
+    return () => clearTimeout(timeoutId);
   }, [statusFilter, dateRange.start, dateRange.end, fetchTransfers, fetchSummaryData]);
   
   // Apply filters when any filter or data changes
