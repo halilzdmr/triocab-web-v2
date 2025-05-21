@@ -27,7 +27,7 @@ const TransferSummary: React.FC<TransferSummaryProps> = ({
   // Debug log when component renders
   // Applying rule: Always add debug logs & comments in the code for easier debug & readability
   React.useEffect(() => {
-    console.log('TransferSummary rendering with data:', {
+    #console.log('TransferSummary rendering with data:', {
       dateRangeLabel,
       isLoading,
       accountName,

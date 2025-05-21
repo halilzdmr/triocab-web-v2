@@ -30,7 +30,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
   // Initialize with null values or defaults if provided
   useEffect(() => {
     // Log the initial date range for debugging
-    console.log('DateRangePicker initialized with:', { 
+    #console.log('DateRangePicker initialized with:', { 
       start: startDate ? startDate.toISOString() : null, 
       end: endDate ? endDate.toISOString() : null 
     });
@@ -45,7 +45,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
     const date = e.target.value ? new Date(e.target.value) : null;
     setStartDate(date);
     onChange({ start: date, end: endDate });
-    console.log('Start date changed:', date ? date.toISOString() : null);
+    #console.log('Start date changed:', date ? date.toISOString() : null);
   };
 
   /**
@@ -55,7 +55,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
     const date = e.target.value ? new Date(e.target.value) : null;
     setEndDate(date);
     onChange({ start: startDate, end: date });
-    console.log('End date changed:', date ? date.toISOString() : null);
+    #console.log('End date changed:', date ? date.toISOString() : null);
   };
 
   /**
@@ -66,7 +66,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
     setEndDate(null);
     onChange({ start: null, end: null });
     setIsOpen(false);
-    console.log('Date range reset');
+    #console.log('Date range reset');
   };
 
   /**
